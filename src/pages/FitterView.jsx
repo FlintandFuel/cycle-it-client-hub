@@ -143,9 +143,9 @@ export default function FitterView() {
   return (
     <div className="min-h-screen bg-ink pb-24">
       <header className="border-b border-border">
-        <div className="mx-auto max-w-3xl px-4 py-6 sm:px-6">
-          <img src={logo} alt="Cycle-It" className="h-7 w-auto" />
-          <h1 className="mt-3 text-2xl font-bold text-off-white sm:text-3xl">New bike fit</h1>
+        <div className="mx-auto max-w-3xl px-4 py-8 sm:px-6">
+          <img src={logo} alt="Cycle-It" className="h-20 w-auto sm:h-[100px]" />
+          <h1 className="mt-4 text-2xl font-bold text-off-white sm:text-3xl">New bike fit</h1>
         </div>
       </header>
 

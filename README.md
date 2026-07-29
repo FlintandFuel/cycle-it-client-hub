@@ -4,10 +4,12 @@ Replaces Ruan Smit's Excel/Dropbox/email workflow with a live client fit
 profile app. See `bike-fit-dashboard-claude-code-prompt.md` for the full
 build brief.
 
-## Status: Phase 1 (dashboard)
+Firebase project: `cycle-it-client-hub` (project number `89478750002`,
+already set in `.firebaserc`).
 
-Two views, running against local mock data (no Firebase project wired up
-yet):
+## Status: Phase 1 built, Phase 2 code ready but not deployed
+
+**Phase 1 — dashboard.** Two views, running against local mock data:
 
 - **`/new`** — fitter view. Capture bike details, measurements, cleat fit
   and notes, then hand the client-details section off for name/email/phone
@@ -17,6 +19,13 @@ yet):
 A demo profile is seeded automatically on first load (fictional client,
 realistic measurement values) — open `/p/demo-jordan-pillay` to see it
 immediately.
+
+**Phase 2 — automated email (code written, not live yet).** `functions/`
+has an `onProfileCreated` Firestore trigger that emails the client their
+profile link plus a review ask via the Gmail API, and a `reviewOptOut`
+HTTPS endpoint for the "Don't ask me again" link (Phase 2b). See
+"What's needed to go live" below — this can't actually fire until two
+things happen.
 
 ## Run it locally
 
@@ -32,26 +41,34 @@ collection described in the brief, but persists to `localStorage` for now.
 Swapping in real Firestore later should only mean rewriting the bodies of
 `getProfile` / `createProfile` — every caller stays the same.
 
-## Firebase scaffold
+## What's needed to go live
 
-`firebase.json`, `firestore.rules`, `firestore.indexes.json`, `.firebaserc`
-and `functions/` are scaffolded so the project is deploy-ready once real
-Firebase wiring happens (Phase 2+):
+1. **Frontend → real Firestore.** The app still writes to `localStorage`
+   (see above), so `onProfileCreated` never fires yet — Firestore
+   `onCreate` only triggers on real writes. Wiring the frontend to
+   Firestore needs the Web App config object (`apiKey`, `authDomain`,
+   `appId`, etc.) from Firebase Console → Project settings → your web app.
+2. **Gmail OAuth credentials.** `functions/.env.example` lists what's
+   needed (`GMAIL_CLIENT_ID`, `GMAIL_CLIENT_SECRET`,
+   `GMAIL_REFRESH_TOKEN`, `GMAIL_SENDER_EMAIL`) — these come from a Google
+   Cloud OAuth client authorized against Ruan's Workspace mailbox with the
+   `gmail.send` scope. Copy the file to `functions/.env` and fill it in
+   (git-ignored).
 
-1. `firebase login`
-2. Create a Firebase project, then set its ID in `.firebaserc`
-   (currently a placeholder: `cycle-it-fit-dashboard`)
-3. `firebase deploy`
+Once both are in place:
 
-Gmail API OAuth credentials (Phase 2) and the Calendly booking link
-(Phase 3) are left as placeholders — the project owner supplies the real
-values.
+```
+firebase login
+firebase deploy
+```
 
-## Next phases (not yet built)
+## Next phases
 
-- **Phase 2** — Cloud Function sends the profile email via Gmail API on
-  save.
-- **Phase 2b** — review-ask email section with opt-out link.
-- **Phase 3** — scheduled 3-month follow-up email.
+- **Phase 2 / 2b** — done in code (`functions/index.js`,
+  `functions/lib/`), pending the two prerequisites above.
+- **Phase 3** — scheduled 3-month follow-up email. Not built yet.
+  `functions/lib/templates.js` already has `buildFollowUpEmail` ready to
+  reuse; `CALENDLY_URL` is set in `.env.example`
+  (`https://calendly.com/ruan-photos26/`).
 - **Phase 4** — WhatsApp nudge button (`wa.me` link) on the fitter
-  dashboard after save.
+  dashboard after save. Not built yet.

@@ -61,8 +61,8 @@ export default function ClientProfileView() {
   return (
     <div className="min-h-screen bg-ink pb-16">
       <div className="mx-auto max-w-md px-5 pt-10 sm:max-w-lg">
-        <img src={logo} alt="Cycle-It" className="h-6 w-auto" />
-        <h1 className="mt-3 text-2xl font-bold text-off-white">Your bike fit profile</h1>
+        <img src={logo} alt="Cycle-It" className="h-16 w-auto" />
+        <h1 className="mt-4 text-2xl font-bold text-off-white">Your bike fit profile</h1>
         <p className="mt-1 text-sm text-muted">Prepared for {profile.client.name}</p>
 
         {/* Summary card */}
