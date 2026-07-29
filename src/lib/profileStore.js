@@ -1,60 +1,42 @@
-// Mock data layer for Phase 1, shaped to match the Firestore `profiles`
-// collection defined in the build brief. Swapping this for real Firestore
-// calls in a later phase should only require rewriting the bodies of the
-// functions below (getProfile / createProfile) — callers stay the same.
+// Firestore-backed data layer for the `profiles` collection defined in the
+// build brief. Callers (FitterView, ClientProfileView, ClientsDashboard)
+// only depend on the function signatures below, not on Firestore itself.
 
-import { demoProfile, DEMO_PROFILE_ID } from './demoData'
+import { db } from './firebase'
+import {
+  collection,
+  doc,
+  getDoc,
+  getDocs,
+  setDoc,
+  serverTimestamp,
+  query,
+  orderBy,
+} from 'firebase/firestore'
 
-const STORAGE_KEY = 'cycleit_profiles_v1'
-
-function readAll() {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY)
-    if (!raw) return {}
-    return JSON.parse(raw)
-  } catch {
-    return {}
-  }
-}
-
-function writeAll(profiles) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(profiles))
-}
-
-function ensureSeeded() {
-  const profiles = readAll()
-  if (!profiles[DEMO_PROFILE_ID]) {
-    profiles[DEMO_PROFILE_ID] = demoProfile
-    writeAll(profiles)
-  }
-}
-
-ensureSeeded()
-
-// Random, non-sequential, non-guessable ID — mirrors an auto-generated
-// Firestore document ID closely enough for local/demo purposes.
-function generateId() {
-  if (crypto?.randomUUID) return crypto.randomUUID()
-  return `id-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`
-}
+const COLLECTION = 'profiles'
 
 export async function getProfile(id) {
-  const profiles = readAll()
-  return profiles[id] ?? null
+  const snap = await getDoc(doc(db, COLLECTION, id))
+  return snap.exists() ? { id: snap.id, ...snap.data() } : null
 }
 
 export async function createProfile(data) {
-  const id = generateId()
+  const ref = doc(collection(db, COLLECTION))
   const profile = {
     ...data,
-    id,
-    createdAt: new Date().toISOString(),
+    id: ref.id,
+    createdAt: serverTimestamp(),
     emailStatus: { profileEmailSent: false, profileEmailSentAt: null },
     review: { optedOut: false, clicked: false },
     followUp: { sent: false, sentAt: null },
   }
-  const profiles = readAll()
-  profiles[id] = profile
-  writeAll(profiles)
+  await setDoc(ref, profile)
   return profile
+}
+
+// Requires an authenticated caller — see firestore.rules (`allow list`).
+export async function listProfiles() {
+  const snap = await getDocs(query(collection(db, COLLECTION), orderBy('createdAt', 'desc')))
+  return snap.docs.map((d) => ({ id: d.id, ...d.data() }))
 }

@@ -1,19 +1,17 @@
 rules_version = '2';
 
-// NOTE: Phase 1 ships against local mock data, not this deployed project —
-// see src/lib/profileStore.js. These rules are here so the project is
-// deploy-ready once Phase 2 wires the app up to real Firestore.
-//
 // Profile IDs are random/unguessable and act as the access control for
-// reads (like an unlisted link). Direct client writes are intentionally
-// narrow: no list, no update/delete, and consent is enforced server-side
-// too. Once the fitter dashboard has real auth, tighten `create` to
-// `request.auth != null`.
+// single-document reads (like an unlisted link) — no auth needed for
+// `get`. Listing the whole collection (the /clients dashboard) requires
+// a signed-in Google account, gated client-side by AuthGate and enforced
+// here too. The fitter form (/new) still writes without auth, matching
+// its low-friction "standing next to a bike" use case — tighten `create`
+// to `request.auth != null` if that changes.
 service cloud.firestore {
   match /databases/{database}/documents {
     match /profiles/{profileId} {
       allow get: if true;
-      allow list: if false;
+      allow list: if request.auth != null;
 
       allow create: if request.resource.data.client.consentGiven == true;
 

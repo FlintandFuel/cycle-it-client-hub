@@ -1,6 +1,8 @@
 import { Routes, Route, Navigate } from 'react-router-dom'
 import FitterView from './pages/FitterView'
 import ClientProfileView from './pages/ClientProfileView'
+import ClientsDashboard from './pages/ClientsDashboard'
+import AuthGate from './components/AuthGate'
 
 export default function App() {
   return (
@@ -8,6 +10,14 @@ export default function App() {
       <Route path="/" element={<Navigate to="/new" replace />} />
       <Route path="/new" element={<FitterView />} />
       <Route path="/p/:id" element={<ClientProfileView />} />
+      <Route
+        path="/clients"
+        element={
+          <AuthGate>
+            <ClientsDashboard />
+          </AuthGate>
+        }
+      />
       <Route path="*" element={<NotFound />} />
     </Routes>
   )

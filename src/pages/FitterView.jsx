@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Link } from 'react-router-dom'
 import Field from '../components/Field'
 import SectionCard from '../components/SectionCard'
 import { createProfile } from '../lib/profileStore'
@@ -143,9 +144,17 @@ export default function FitterView() {
   return (
     <div className="min-h-screen bg-ink pb-24">
       <header className="border-b border-border">
-        <div className="mx-auto max-w-3xl px-4 py-8 sm:px-6">
-          <img src={logo} alt="Cycle-It" className="h-20 w-auto sm:h-[100px]" />
-          <h1 className="mt-4 text-2xl font-bold text-off-white sm:text-3xl">New bike fit</h1>
+        <div className="mx-auto flex max-w-3xl items-start justify-between px-4 py-8 sm:px-6">
+          <div>
+            <img src={logo} alt="Cycle-It" className="h-16 w-auto" />
+            <h1 className="mt-4 text-2xl font-bold text-off-white sm:text-3xl">New bike fit</h1>
+          </div>
+          <Link
+            to="/clients"
+            className="mt-1 shrink-0 text-sm text-muted underline decoration-border underline-offset-4 hover:text-off-white"
+          >
+            All clients
+          </Link>
         </div>
       </header>
 
