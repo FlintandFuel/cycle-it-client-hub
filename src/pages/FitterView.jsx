@@ -16,9 +16,12 @@ function toWhatsAppNumber(phone) {
   return digits.startsWith('0') ? `27${digits.slice(1)}` : digits
 }
 
-function whatsAppNudgeUrl(client) {
+// Includes the link directly rather than "check your email" — Phase 2
+// automated email isn't live yet, and even once it is, WhatsApp is a more
+// reliable delivery channel to lean on than assuming the email lands.
+function whatsAppNudgeUrl(client, url) {
   const firstName = client.name.trim().split(' ')[0]
-  const message = `Hi ${firstName}, your Cycle-It bike fit is done! Check your email for your fit profile.`
+  const message = `Hi ${firstName}, your Cycle-It bike fit is done! Here's your fit profile: ${url}`
   return `https://wa.me/${toWhatsAppNumber(client.phone)}?text=${encodeURIComponent(message)}`
 }
 
@@ -104,6 +107,19 @@ export default function FitterView() {
     setTimeout(() => setCopied(false), 2000)
   }
 
+  function handleShare() {
+    const url = `${window.location.origin}/p/${result.id}`
+    if (navigator.share) {
+      // Opens the OS share sheet (WhatsApp, Messages, Mail, AirDrop, etc.)
+      // — falls back to copy-link on browsers that don't support it
+      // (most desktop browsers, which is the fitter dashboard's primary
+      // use case).
+      navigator.share({ title: 'Cycle-It fit profile', text: `${form.client.name}'s bike fit profile`, url }).catch(() => {})
+    } else {
+      handleCopy()
+    }
+  }
+
   function handleStartNewFit() {
     setForm({ ...emptyForm, fitDate: todayISO() })
     setErrors({})
@@ -144,11 +160,21 @@ export default function FitterView() {
             Open profile page
           </a>
 
+          <button
+            onClick={handleShare}
+            className="mt-6 flex w-full items-center justify-center gap-2 rounded-lg bg-orange py-3.5 text-[15px] font-semibold text-ink transition-colors hover:bg-orange-light"
+          >
+            <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 5v9m0-9 3.5 3.5M12 5 8.5 8.5M5 14v3.5A1.5 1.5 0 0 0 6.5 19h11a1.5 1.5 0 0 0 1.5-1.5V14" />
+            </svg>
+            Share profile
+          </button>
+
           <a
-            href={whatsAppNudgeUrl(form.client)}
+            href={whatsAppNudgeUrl(form.client, url)}
             target="_blank"
             rel="noreferrer"
-            className="mt-6 flex w-full items-center justify-center gap-2 rounded-lg border border-border py-3.5 text-[15px] font-medium text-off-white transition-colors hover:border-orange"
+            className="mt-3 flex w-full items-center justify-center gap-2 rounded-lg border border-border py-3.5 text-[15px] font-medium text-off-white transition-colors hover:border-orange"
           >
             <svg viewBox="0 0 24 24" className="h-4 w-4" fill="currentColor">
               <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.198.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.52.149-.174.198-.298.297-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z" />
