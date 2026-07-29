@@ -1,0 +1,35 @@
+@import "tailwindcss";
+
+@theme {
+  --color-ink: #0b0b0c;
+  --color-ink-raised: #141416;
+  --color-orange: #e8672b;
+  --color-orange-light: #f2a23a;
+  --color-off-white: #f5f4f2;
+  --color-muted: #9a9a9e;
+  --color-border: #232326;
+  --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+
+html {
+  background: var(--color-ink);
+}
+
+body {
+  margin: 0;
+  background: var(--color-ink);
+  color: var(--color-off-white);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+input, select, textarea {
+  font-family: inherit;
+}
+
+/* Remove number input spinners for cleaner measurement fields */
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
