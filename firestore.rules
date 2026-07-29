@@ -3,15 +3,17 @@ rules_version = '2';
 // Profile IDs are random/unguessable and act as the access control for
 // single-document reads (like an unlisted link) — no auth needed for
 // `get`. Listing the whole collection (the /clients dashboard) requires
-// a signed-in Google account, gated client-side by AuthGate and enforced
-// here too. The fitter form (/new) still writes without auth, matching
-// its low-friction "standing next to a bike" use case — tighten `create`
-// to `request.auth != null` if that changes.
+// a signed-in Google account on the allowlist below — mirrors
+// src/components/AuthGate.jsx, keep the two in sync. The fitter form
+// (/new) still writes without auth, matching its low-friction "standing
+// next to a bike" use case — tighten `create` to `request.auth != null`
+// if that changes.
 service cloud.firestore {
   match /databases/{database}/documents {
     match /profiles/{profileId} {
       allow get: if true;
-      allow list: if request.auth != null;
+      allow list: if request.auth != null &&
+        request.auth.token.email in ['ruan.photos26@gmail.com', 'cvaniek@gmail.com'];
 
       allow create: if request.resource.data.client.consentGiven == true;
 

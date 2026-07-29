@@ -1,13 +1,28 @@
 import { useEffect, useState } from 'react'
 import { onAuthStateChanged, signInWithPopup, signOut } from 'firebase/auth'
 import { auth, googleProvider } from '../lib/firebase'
+import { ALLOWED_EMAILS } from '../lib/allowedEmails'
 import logo from '../assets/cycle-it-logo-white.png'
 
 export default function AuthGate({ children }) {
   const [user, setUser] = useState(undefined)
   const [error, setError] = useState('')
+  const [denied, setDenied] = useState(false)
 
-  useEffect(() => onAuthStateChanged(auth, setUser), [])
+  useEffect(
+    () =>
+      onAuthStateChanged(auth, (u) => {
+        if (u && !ALLOWED_EMAILS.includes(u.email)) {
+          setDenied(true)
+          signOut(auth)
+          setUser(null)
+          return
+        }
+        setDenied(false)
+        setUser(u)
+      }),
+    [],
+  )
 
   async function handleSignIn() {
     setError('')
@@ -41,6 +56,11 @@ export default function AuthGate({ children }) {
           >
             Sign in with Google
           </button>
+          {denied && (
+            <p className="mt-3 text-sm text-orange">
+              That Google account isn&apos;t authorized for the client dashboard.
+            </p>
+          )}
           {error && <p className="mt-3 text-sm text-orange">{error}</p>}
         </div>
       </div>

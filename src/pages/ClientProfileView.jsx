@@ -1,6 +1,9 @@
 import { useEffect, useState } from 'react'
-import { useParams } from 'react-router-dom'
+import { useParams, Link } from 'react-router-dom'
+import { onAuthStateChanged } from 'firebase/auth'
 import { getProfile } from '../lib/profileStore'
+import { auth } from '../lib/firebase'
+import { ALLOWED_EMAILS } from '../lib/allowedEmails'
 import logo from '../assets/cycle-it-logo-white.png'
 
 const measurementLabels = {
@@ -28,6 +31,7 @@ function formatDate(iso) {
 export default function ClientProfileView() {
   const { id } = useParams()
   const [profile, setProfile] = useState(undefined)
+  const [isFitter, setIsFitter] = useState(false)
 
   useEffect(() => {
     let active = true
@@ -38,6 +42,11 @@ export default function ClientProfileView() {
       active = false
     }
   }, [id])
+
+  // Only ever adds fitter-facing chrome (a link back to the dashboard) —
+  // never gates the page itself, since this URL is meant to open for
+  // clients straight from an email link with no sign-in of their own.
+  useEffect(() => onAuthStateChanged(auth, (u) => setIsFitter(!!u && ALLOWED_EMAILS.includes(u.email))), [])
 
   if (profile === undefined) {
     return (
@@ -61,6 +70,14 @@ export default function ClientProfileView() {
   return (
     <div className="min-h-screen bg-ink pb-16">
       <div className="mx-auto max-w-md px-5 pt-10 sm:max-w-lg">
+        {isFitter && (
+          <Link
+            to="/clients"
+            className="mb-4 inline-block text-sm text-muted underline decoration-border underline-offset-4 hover:text-off-white"
+          >
+            ← All clients
+          </Link>
+        )}
         <img src={logo} alt="Cycle-It" className="h-16 w-auto" />
         <h1 className="mt-4 text-2xl font-bold text-off-white">Your bike fit profile</h1>
         <p className="mt-1 text-sm text-muted">Prepared for {profile.client.name}</p>
@@ -137,7 +154,7 @@ export default function ClientProfileView() {
         )}
 
         <p className="mt-10 text-center text-xs text-muted">
-          Cycle-It Bike Fitting · fit questions? Reply to your profile email.
+          Got any fit questions? Just reply to the email that brought you here.
         </p>
       </div>
     </div>

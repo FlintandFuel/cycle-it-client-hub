@@ -1,11 +1,12 @@
 const { onDocumentCreated } = require('firebase-functions/v2/firestore')
 const { onRequest } = require('firebase-functions/v2/https')
+const { onSchedule } = require('firebase-functions/v2/scheduler')
 const { setGlobalOptions } = require('firebase-functions/v2')
 const logger = require('firebase-functions/logger')
 const admin = require('firebase-admin')
 
 const { sendMail } = require('./lib/gmail')
-const { buildProfileEmail, optOutConfirmationPage } = require('./lib/templates')
+const { buildProfileEmail, buildFollowUpEmail, optOutConfirmationPage } = require('./lib/templates')
 
 admin.initializeApp()
 const db = admin.firestore()
@@ -77,6 +78,54 @@ exports.reviewOptOut = onRequest(async (req, res) => {
   res.status(200).send(optOutConfirmationPage())
 })
 
-// Phase 3 (not built yet) — a scheduled function will query profiles where
-// fitDate is 89-92 days ago and followUp.sent is false, then send
-// buildFollowUpEmail(...) from ./lib/templates.js using CALENDLY_URL.
+// Phase 3 — daily job (8am SAST) that emails clients whose fit was
+// 89-92 days ago and who haven't had a follow-up sent yet. fitDate is
+// stored as a "YYYY-MM-DD" string, which sorts/compares correctly as a
+// plain string range. The 89-92 day window (not exactly "3 months ago")
+// is deliberately a few days wide so a daily cron can't skip anyone.
+exports.sendFollowUpReminders = onSchedule(
+  { schedule: '0 8 * * *', timeZone: 'Africa/Johannesburg' },
+  async () => {
+    const toISODate = (d) => d.toISOString().slice(0, 10)
+    const today = new Date()
+    const windowStart = new Date(today)
+    windowStart.setUTCDate(windowStart.getUTCDate() - 92)
+    const windowEnd = new Date(today)
+    windowEnd.setUTCDate(windowEnd.getUTCDate() - 89)
+
+    const snap = await db
+      .collection('profiles')
+      .where('fitDate', '>=', toISODate(windowStart))
+      .where('fitDate', '<=', toISODate(windowEnd))
+      .where('followUp.sent', '==', false)
+      .get()
+
+    for (const docSnap of snap.docs) {
+      const ref = docSnap.ref
+      const profile = docSnap.data()
+
+      const claimed = await db.runTransaction(async (tx) => {
+        const fresh = await tx.get(ref)
+        if (fresh.data()?.followUp?.sent) return false
+        tx.update(ref, {
+          'followUp.sent': true,
+          'followUp.sentAt': admin.firestore.FieldValue.serverTimestamp(),
+        })
+        return true
+      })
+      if (!claimed) continue
+
+      const { subject, html } = buildFollowUpEmail({ profile, calendlyUrl: process.env.CALENDLY_URL })
+
+      try {
+        await sendMail({ to: profile.client.email, subject, html })
+      } catch (err) {
+        // Don't let one bad send take down the rest of the daily batch —
+        // release the claim so tomorrow's run retries this client, log,
+        // and move on.
+        await ref.update({ 'followUp.sent': false, 'followUp.sentAt': null })
+        logger.error(`Failed to send follow-up email for ${ref.id}`, err)
+      }
+    }
+  },
+)
