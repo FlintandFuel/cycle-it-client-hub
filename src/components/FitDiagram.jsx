@@ -1,4 +1,4 @@
-import bikeGraphic from '../assets/bike-graphic-v2.jpg'
+import bikeGraphic from '../assets/bike-graphic-v4.jpg'
 
 // Numbered callouts over the brand's bike-graphic artwork, matching the
 // measurement rows in ClientProfileView (same 1-7 order as
@@ -70,14 +70,17 @@ function PointLabel({ x, y, toX, toY, n }) {
   )
 }
 
-// Key anchors read directly off bike-graphic-v2.jpg (349x233):
+// Key anchors read directly off bike-graphic-v4.jpg (349x233). Frame/wheel
+// geometry is identical to v2; only the width-inset glyph moved (and
+// changed orientation to a horizontal dumbbell — a better semantic match
+// for "width" than v2's vertical one).
 const BB = { x: 133, y: 140 } // bottom bracket / frame apex
 const SADDLE_NOSE = { x: 150, y: 53 }
 const SEAT_POST_X = 133
 const HEAD_JUNCTION = { x: 240, y: 78 } // top tube / down tube / hoods base
 const HOODS_TOP = { x: 246, y: 58 }
 const PEDAL = { x: 133, y: 178 }
-const WIDTH_INSET = { x: 320, y: 60 } // the separate bar-width cross-section glyph
+const WIDTH_INSET = { x: 295, y: 25 } // horizontal bar-width glyph, top right
 
 export default function FitDiagram() {
   return (
@@ -110,7 +113,7 @@ export default function FitDiagram() {
           <DimensionV x={278} y1={SADDLE_NOSE.y} y2={HEAD_JUNCTION.y} anchor1X={SADDLE_NOSE.x} anchor2X={HEAD_JUNCTION.x} n={5} />
 
           {/* 6 — handlebar width: points to the bar-width inset glyph */}
-          <PointLabel x={300} y={100} toX={WIDTH_INSET.x - 6} toY={WIDTH_INSET.y + 12} n={6} />
+          <PointLabel x={WIDTH_INSET.x + 4} y={44} toX={WIDTH_INSET.x} toY={WIDTH_INSET.y + 14} n={6} />
 
           {/* 7 — crank length: points to the crank arm */}
           <PointLabel x={165} y={165} toX={BB.x + 4} toY={(BB.y + PEDAL.y) / 2} n={7} />
