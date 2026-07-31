@@ -4,6 +4,7 @@ import { onAuthStateChanged } from 'firebase/auth'
 import { getProfile } from '../lib/profileStore'
 import { auth } from '../lib/firebase'
 import { ALLOWED_EMAILS } from '../lib/allowedEmails'
+import FitDiagram from '../components/FitDiagram'
 import logo from '../assets/cycle-it-logo-white.png'
 
 const measurementLabels = {
@@ -112,10 +113,12 @@ export default function ClientProfileView() {
           <h2 className="mb-3 text-sm font-semibold uppercase tracking-widest text-muted">
             Measurements
           </h2>
-          <div className="overflow-hidden rounded-xl border border-border">
+          <FitDiagram />
+          <div className="mt-3 overflow-hidden rounded-xl border border-border">
             {Object.entries(measurementLabels).map(([key, label], i) => (
               <Row
                 key={key}
+                number={i + 1}
                 label={label}
                 value={profile.measurements?.[key]}
                 striped={i % 2 === 1}
@@ -161,14 +164,21 @@ export default function ClientProfileView() {
   )
 }
 
-function Row({ label, value, striped }) {
+function Row({ label, value, striped, number }) {
   return (
     <div
       className={`flex items-center justify-between px-4 py-3.5 ${
         striped ? 'bg-ink-raised' : 'bg-ink'
       }`}
     >
-      <span className="text-sm text-muted">{label}</span>
+      <span className="flex items-center gap-2.5 text-sm text-muted">
+        {number && (
+          <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-orange/40 text-[10px] font-bold text-orange">
+            {number}
+          </span>
+        )}
+        {label}
+      </span>
       <span className="text-sm font-medium text-off-white">{value || '—'}</span>
     </div>
   )

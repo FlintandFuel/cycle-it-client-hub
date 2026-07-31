@@ -1,5 +1,5 @@
 import { initializeApp } from 'firebase/app'
-import { getFirestore } from 'firebase/firestore'
+import { initializeFirestore, persistentLocalCache, persistentSingleTabManager } from 'firebase/firestore'
 import { getAuth, GoogleAuthProvider } from 'firebase/auth'
 
 // These are public client identifiers, not secrets — Firebase's security
@@ -16,6 +16,14 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig)
 
-export const db = getFirestore(app)
+// Persistent local cache: writes made with weak/no signal (mid fit,
+// on-site at a client's house) queue in IndexedDB and sync automatically
+// once connectivity returns — createProfile() resolves immediately from
+// the local cache either way, so /new stays usable offline. Single-tab
+// manager is fine here since the fitter dashboard is a one-tab-at-a-time,
+// one-laptop workflow.
+export const db = initializeFirestore(app, {
+  localCache: persistentLocalCache({ tabManager: persistentSingleTabManager() }),
+})
 export const auth = getAuth(app)
 export const googleProvider = new GoogleAuthProvider()

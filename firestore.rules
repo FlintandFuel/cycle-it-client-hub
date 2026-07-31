@@ -20,5 +20,25 @@ service cloud.firestore {
       allow update: if false;
       allow delete: if false;
     }
+
+    // Calendly's booking-confirmation redirect lands an unauthenticated
+    // client browser on /booked, which writes one of these — so `create`
+    // has to stay open the same way profile `create` does. Unlike
+    // profiles, nothing about a booking is meant to be individually
+    // link-shareable, so `get` stays closed; only the allowlisted fitter
+    // dashboard can read them at all, to view the day's list.
+    match /bookings/{bookingId} {
+      allow get: if false;
+      allow list: if request.auth != null &&
+        request.auth.token.email in ['ruan.photos26@gmail.com', 'cvaniek@gmail.com'];
+
+      allow create: if request.resource.data.name is string &&
+        request.resource.data.name.size() > 0 &&
+        request.resource.data.email is string &&
+        request.resource.data.email.size() > 0;
+
+      allow update: if false;
+      allow delete: if false;
+    }
   }
 }

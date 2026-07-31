@@ -21,12 +21,26 @@ set in `.firebaserc`). Firestore rules and indexes are deployed and live.
   design — the ID is the access control, like an unlisted link. If opened
   by a signed-in fitter (e.g. from the dashboard), it shows an extra
   "← All clients" link back to `/clients`; clients themselves never see it.
+  The measurements section includes a numbered bike-fit diagram
+  (`src/components/FitDiagram.jsx`, hand-drawn SVG) — each measurement row
+  is numbered 1-7 to match the callout on the diagram.
 - **`/clients`** — dashboard listing every saved profile (name, bike, fit
   date, status badges), with a link into each `/p/:id`. Gated behind
-  Google sign-in, allowlisted to specific accounts (see "Auth").
+  Google sign-in, allowlisted to specific accounts (see "Auth"). If
+  there are recent Calendly bookings (see below), a signed-in fitter also
+  sees a "Recent bookings" picker at the top of `/new` to prefill client
+  details instead of asking again.
+- **`/booked`** — landing page for Calendly's booking-confirmation
+  redirect; not meant to be visited directly (see "Calendly integration").
 
 Three fictional demo clients are seeded in Firestore — see "Demo data"
 below.
+
+**Works offline.** `/new` uses Firestore's persistent local cache
+(`src/lib/firebase.js`), so a save on weak/no signal — the "on-site fit"
+case — completes instantly from the local cache and syncs automatically
+once back in range. The header shows an Online/Offline badge, and the
+success screen flags it if a save happened offline.
 
 **Phase 2 / 2b / 3 — automated email (code written, not deployed).**
 `functions/` has:
@@ -77,6 +91,41 @@ npm run seed:demo
 Pushes three fictional clients (`src/lib/demoData.js`) into Firestore —
 safe to re-run, it skips any that already exist. Gives `/clients` and
 `/p/:id` something realistic to show without needing real client data.
+
+## Calendly integration
+
+When someone books through Calendly, their name/email/phone gets captured
+automatically so Ruan doesn't have to ask again on the day — no Calendly
+API key or webhook needed, just one redirect URL configured in Calendly's
+UI:
+
+1. In Calendly, open the bike-fit event type → **Confirmation Page** (or
+   **"Advanced" / "After confirmation"**, depending on Calendly's current
+   UI) → choose **"Redirect to an external site"**.
+2. Set the redirect URL to:
+   ```
+   https://cycle-it-client-hub.web.app/booked?name=[invitee_full_name]&email=[invitee_email]&phone=[Q1]
+   ```
+   Calendly substitutes its own merge tags for the actual booking details
+   before redirecting — `[invitee_full_name]` and `[invitee_email]` are
+   standard fields, but the exact tag names/picker Calendly shows you may
+   differ from this depending on your plan and its current UI. Use
+   whatever it offers for name and email; phone only works if the event
+   type has a custom question asking for it (Calendly's default booking
+   form doesn't collect phone).
+3. That's it — no webhook, no API token. The client's browser lands on
+   `/booked`, which writes their details to Firestore (`bookings`
+   collection) and shows a friendly "you're all set" page instead of
+   raw query params.
+
+On the day, a signed-in fitter opens `/new` and sees a "Recent bookings"
+row (last 20) to tap instead of retyping. Reading that list requires the
+same allowlisted sign-in as `/clients` (`firestore.rules`) — an
+unauthenticated visitor to `/new` never sees or can query it, so this
+doesn't add a new place client PII leaks.
+
+If Calendly can't pass phone via a merge tag on your plan, this still
+saves re-typing name + email, which is most of the repetition.
 
 ## Data layer
 

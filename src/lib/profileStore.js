@@ -31,7 +31,14 @@ export async function createProfile(data) {
     review: { optedOut: false, clicked: false },
     followUp: { sent: false, sentAt: null },
   }
-  await setDoc(ref, profile)
+  // Deliberately not awaited: setDoc() writes to the local cache
+  // synchronously (so getProfile(ref.id) works immediately, even offline),
+  // but its returned promise only resolves once the backend acknowledges
+  // the write — which never happens without a connection. Awaiting it
+  // would hang the whole save on weak/no signal, exactly the case this
+  // needs to handle. The write still queues and syncs automatically once
+  // back online; errors are logged rather than surfaced synchronously.
+  setDoc(ref, profile).catch((err) => console.error(`Failed to sync profile ${ref.id}`, err))
   return profile
 }
 

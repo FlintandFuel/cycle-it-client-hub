@@ -1,9 +1,14 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
+import { onAuthStateChanged } from 'firebase/auth'
 import Field from '../components/Field'
 import SectionCard from '../components/SectionCard'
 import { createProfile } from '../lib/profileStore'
+import { listRecentBookings } from '../lib/bookingStore'
 import { DEFAULT_NOTES } from '../lib/demoData'
+import { useOnlineStatus } from '../lib/useOnlineStatus'
+import { auth } from '../lib/firebase'
+import { ALLOWED_EMAILS } from '../lib/allowedEmails'
 import logo from '../assets/cycle-it-logo-white.png'
 
 const todayISO = () => new Date().toISOString().slice(0, 10)
@@ -60,11 +65,38 @@ const cleatLabels = {
 }
 
 export default function FitterView() {
+  const online = useOnlineStatus()
   const [form, setForm] = useState(emptyForm)
   const [errors, setErrors] = useState({})
   const [saving, setSaving] = useState(false)
   const [result, setResult] = useState(null)
+  const [savedOffline, setSavedOffline] = useState(false)
   const [copied, setCopied] = useState(false)
+  const [bookings, setBookings] = useState([])
+
+  // Recent Calendly bookings (see bookingStore.js / BookedConfirmation.jsx)
+  // only load for a signed-in, allowlisted fitter — reading the bookings
+  // collection at all requires that per firestore.rules, and it keeps the
+  // no-login "standing next to a bike" flow completely unchanged for
+  // anyone else who loads this page.
+  useEffect(
+    () =>
+      onAuthStateChanged(auth, (u) => {
+        if (u && ALLOWED_EMAILS.includes(u.email)) {
+          listRecentBookings().then(setBookings).catch(() => setBookings([]))
+        } else {
+          setBookings([])
+        }
+      }),
+    [],
+  )
+
+  function useBooking(booking) {
+    setForm((prev) => ({
+      ...prev,
+      client: { ...prev.client, name: booking.name, email: booking.email, phone: booking.phone || '' },
+    }))
+  }
 
   function setField(section, key, value) {
     setForm((prev) =>
@@ -92,6 +124,7 @@ export default function FitterView() {
     e.preventDefault()
     if (!validate()) return
     setSaving(true)
+    setSavedOffline(!online)
     try {
       const profile = await createProfile(form)
       setResult(profile)
@@ -140,6 +173,13 @@ export default function FitterView() {
           <p className="mt-2 text-sm text-muted">
             {form.client.name}&apos;s fit profile is ready to share.
           </p>
+
+          {savedOffline && (
+            <p className="mt-3 rounded-lg border border-orange/40 bg-orange/10 px-4 py-2.5 text-sm text-orange">
+              Saved offline — it'll sync automatically once you're back in range. The link
+              below will work for others as soon as it does.
+            </p>
+          )}
 
           <div className="mt-6 flex items-center gap-2 rounded-lg border border-border bg-ink px-4 py-3">
             <span className="flex-1 truncate text-left text-sm text-off-white">{url}</span>
@@ -202,16 +242,44 @@ export default function FitterView() {
             <img src={logo} alt="Cycle-It" className="h-16 w-auto" />
             <h1 className="mt-4 text-2xl font-bold text-off-white sm:text-3xl">New bike fit</h1>
           </div>
-          <Link
-            to="/clients"
-            className="mt-1 shrink-0 text-sm text-muted underline decoration-border underline-offset-4 hover:text-off-white"
-          >
-            All clients
-          </Link>
+          <div className="mt-1 flex shrink-0 flex-col items-end gap-2">
+            <span
+              className={`flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium ${
+                online ? 'border-border text-muted' : 'border-orange/40 bg-orange/10 text-orange'
+              }`}
+            >
+              <span className={`h-1.5 w-1.5 rounded-full ${online ? 'bg-muted' : 'bg-orange'}`} />
+              {online ? 'Online' : 'Offline — saves will sync later'}
+            </span>
+            <Link
+              to="/clients"
+              className="text-sm text-muted underline decoration-border underline-offset-4 hover:text-off-white"
+            >
+              All clients
+            </Link>
+          </div>
         </div>
       </header>
 
       <form onSubmit={handleSubmit} className="mx-auto max-w-3xl space-y-6 px-4 py-8 sm:px-6">
+        {bookings.length > 0 && (
+          <SectionCard title="Recent bookings" subtitle="From Calendly — tap a client to fill in their details.">
+            <div className="-mx-1 flex gap-3 overflow-x-auto px-1 pb-1">
+              {bookings.map((b) => (
+                <button
+                  key={b.id}
+                  type="button"
+                  onClick={() => useBooking(b)}
+                  className="shrink-0 rounded-lg border border-border px-4 py-3 text-left transition-colors hover:border-orange"
+                >
+                  <p className="text-sm font-medium text-off-white">{b.name}</p>
+                  <p className="text-xs text-muted">{b.email}</p>
+                </button>
+              ))}
+            </div>
+          </SectionCard>
+        )}
+
         <SectionCard title="Session">
           <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
             <Field
