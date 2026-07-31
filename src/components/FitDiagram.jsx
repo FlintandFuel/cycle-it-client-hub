@@ -1,11 +1,14 @@
 import bikeGraphic from '../assets/bike-graphic-v2.jpg'
 
-// Numbered callouts over the brand's bike-graphic-v2 artwork, matching the
+// Numbered callouts over the brand's bike-graphic artwork, matching the
 // measurement rows in ClientProfileView (same 1-7 order as
-// measurementLabels). The artwork's background (#141416) is an exact match
-// for the card it sits on, so it drops in with no visible seam. Coordinates
-// are in the image's native 349x233 pixel space.
+// measurementLabels). The artwork's background (#141416) is an exact
+// match for the card it sits on, so it drops in with no visible seam.
+// Coordinates are in the image's native 349x233 pixel space, read off the
+// actual artwork (not guessed) so every callout anchors to a specific,
+// identifiable point — no floating dashes in open space.
 const ORANGE = '#E8672B'
+const TICK = 5
 
 function Pin({ x, y, n }) {
   return (
@@ -18,9 +21,63 @@ function Pin({ x, y, n }) {
   )
 }
 
-function Dashed({ points }) {
-  return <polyline points={points} fill="none" stroke={ORANGE} strokeWidth="1.5" strokeDasharray="4 3" opacity="0.85" />
+const dash = { stroke: ORANGE, strokeWidth: 1.5, strokeDasharray: '4 3', opacity: 0.9 }
+const solid = { stroke: ORANGE, strokeWidth: 1.5, opacity: 0.9 }
+
+// A proper two-point dimension line: end caps at each anchor, a leader
+// from the anchor to the ruler, the ruler itself broken by the numbered
+// badge at its midpoint — same convention as a printed spec sheet, so
+// which two points a number spans is never in doubt.
+function DimensionV({ x, y1, y2, anchor1X, anchor2X, n }) {
+  const mid = (y1 + y2) / 2
+  return (
+    <g>
+      {anchor1X !== x && <line x1={anchor1X} y1={y1} x2={x} y2={y1} {...dash} />}
+      {anchor2X !== x && <line x1={anchor2X} y1={y2} x2={x} y2={y2} {...dash} />}
+      <line x1={x - TICK} y1={y1} x2={x + TICK} y2={y1} {...solid} />
+      <line x1={x - TICK} y1={y2} x2={x + TICK} y2={y2} {...solid} />
+      <line x1={x} y1={y1} x2={x} y2={mid - 13} {...solid} />
+      <line x1={x} y1={mid + 13} x2={x} y2={y2} {...solid} />
+      <Pin x={x} y={mid} n={n} />
+    </g>
+  )
 }
+
+function DimensionH({ y, x1, x2, anchor1Y, anchor2Y, n }) {
+  const mid = (x1 + x2) / 2
+  return (
+    <g>
+      {anchor1Y !== y && <line x1={x1} y1={anchor1Y} x2={x1} y2={y} {...dash} />}
+      {anchor2Y !== y && <line x1={x2} y1={anchor2Y} x2={x2} y2={y} {...dash} />}
+      <line x1={x1} y1={y - TICK} x2={x1} y2={y + TICK} {...solid} />
+      <line x1={x2} y1={y - TICK} x2={x2} y2={y + TICK} {...solid} />
+      <line x1={x1} y1={y} x2={mid - 13} y2={y} {...solid} />
+      <line x1={mid + 13} y1={y} x2={x2} y2={y} {...solid} />
+      <Pin x={mid} y={y} n={n} />
+    </g>
+  )
+}
+
+// A single unambiguous leader from the badge straight to one component —
+// used where the measurement is really "this part," not a span.
+function PointLabel({ x, y, toX, toY, n }) {
+  return (
+    <g>
+      <line x1={x} y1={y} x2={toX} y2={toY} {...dash} />
+      <circle cx={toX} cy={toY} r="2.5" fill={ORANGE} />
+      <Pin x={x} y={y} n={n} />
+    </g>
+  )
+}
+
+// Key anchors read directly off bike-graphic-v2.jpg (349x233):
+const BB = { x: 133, y: 140 } // bottom bracket / frame apex
+const SADDLE_NOSE = { x: 150, y: 53 }
+const SEAT_POST_X = 133
+const HEAD_JUNCTION = { x: 240, y: 78 } // top tube / down tube / hoods base
+const HOODS_TOP = { x: 246, y: 58 }
+const PEDAL = { x: 133, y: 178 }
+const WIDTH_INSET = { x: 320, y: 60 } // the separate bar-width cross-section glyph
 
 export default function FitDiagram() {
   return (
@@ -28,42 +85,35 @@ export default function FitDiagram() {
       <div className="relative">
         <img src={bikeGraphic} alt="Bike fit measurement diagram" className="block w-full h-auto" />
         <svg viewBox="0 0 349 233" className="absolute inset-0 h-full w-full">
-          {/* 1 — saddle height: vertical, left margin */}
-          <Dashed points="18,52 18,80" />
-          <Dashed points="18,116 18,145" />
-          <line x1="12" y1="52" x2="24" y2="52" stroke={ORANGE} strokeWidth="1.5" />
-          <line x1="12" y1="145" x2="24" y2="145" stroke={ORANGE} strokeWidth="1.5" />
-          <Pin x={18} y={98} n={1} />
+          {/* 1 — saddle height: BB to saddle top, ruler beside the seat tube */}
+          <DimensionV x={92} y1={SADDLE_NOSE.y} y2={BB.y} anchor1X={SEAT_POST_X} anchor2X={BB.x} n={1} />
 
-          {/* 2 — reach: elevated line from saddle nose to hoods */}
-          <Dashed points="148,52 148,14" />
-          <Dashed points="224,60 224,14" />
-          <Dashed points="163,14 189,14" />
-          <Dashed points="207,14 209,14" />
-          <Pin x={196} y={14} n={2} />
+          {/* 2 — reach: saddle nose to hoods, ruler above the bike */}
+          <DimensionH y={22} x1={SADDLE_NOSE.x} x2={HOODS_TOP.x} anchor1Y={SADDLE_NOSE.y} anchor2Y={HOODS_TOP.y} n={2} />
 
-          {/* 3 — saddle setback: short tick above the saddle */}
-          <Dashed points="115,45 115,34 148,34 148,45" />
-          <Pin x={115} y={24} n={3} />
+          {/* 3 — saddle setback: BB plumb line to saddle nose. This span (17px) is
+              narrower than the badge itself, so it can't use the line-broken-by-badge
+              convention — instead the ruler stays intact and a stub carries the
+              badge up and clear, off to the side. */}
+          <line x1={SEAT_POST_X} y1={44} x2={SADDLE_NOSE.x} y2={44} {...solid} />
+          <line x1={SEAT_POST_X} y1={44 - TICK} x2={SEAT_POST_X} y2={44 + TICK} {...solid} />
+          <line x1={SADDLE_NOSE.x} y1={44 - TICK} x2={SADDLE_NOSE.x} y2={44 + TICK} {...solid} />
+          <line x1={SADDLE_NOSE.x} y1={SADDLE_NOSE.y} x2={SADDLE_NOSE.x} y2={44} {...dash} />
+          <line x1={SEAT_POST_X} y1={44} x2={SEAT_POST_X} y2={25} {...solid} />
+          <line x1={SEAT_POST_X} y1={44} x2={SEAT_POST_X} y2={BB.y} stroke={ORANGE} strokeWidth="1" strokeDasharray="2 3" opacity="0.5" />
+          <Pin x={SEAT_POST_X} y={25} n={3} />
 
-          {/* 4 — stem length: badge sits in the open frame triangle,
-              leader points up to the stem/hoods junction */}
-          <Dashed points="218,70 194,86" />
-          <Pin x={188} y={90} n={4} />
+          {/* 4 — stem length: points to the head-tube/hoods junction */}
+          <PointLabel x={195} y={100} toX={HEAD_JUNCTION.x - 4} toY={HEAD_JUNCTION.y + 4} n={4} />
 
-          {/* 5 — saddle-to-bar drop: vertical, right of hoods */}
-          <Dashed points="224,60 335,60" />
-          <Dashed points="148,52 335,52" />
-          <Dashed points="335,52 335,60" />
-          <Pin x={335} y={38} n={5} />
+          {/* 5 — saddle-to-bar drop: saddle height to hoods height, ruler right of the hoods */}
+          <DimensionV x={278} y1={SADDLE_NOSE.y} y2={HEAD_JUNCTION.y} anchor1X={SADDLE_NOSE.x} anchor2X={HEAD_JUNCTION.x} n={5} />
 
-          {/* 6 — handlebar width: small tick near the front */}
-          <Dashed points="300,110 300,130" />
-          <Pin x={300} y={141} n={6} />
+          {/* 6 — handlebar width: points to the bar-width inset glyph */}
+          <PointLabel x={300} y={100} toX={WIDTH_INSET.x - 6} toY={WIDTH_INSET.y + 12} n={6} />
 
-          {/* 7 — crank length: near the bottom bracket / pedal */}
-          <Dashed points="150,150 150,168" />
-          <Pin x={150} y={179} n={7} />
+          {/* 7 — crank length: points to the crank arm */}
+          <PointLabel x={165} y={165} toX={BB.x + 4} toY={(BB.y + PEDAL.y) / 2} n={7} />
         </svg>
       </div>
     </div>
