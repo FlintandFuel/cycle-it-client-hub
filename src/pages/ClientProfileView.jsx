@@ -7,15 +7,18 @@ import { ALLOWED_EMAILS } from '../lib/allowedEmails'
 import FitDiagram from '../components/FitDiagram'
 import logo from '../assets/cycle-it-logo-white.png'
 
-const measurementLabels = {
-  saddleHeight: 'Saddle height',
-  reach: 'Reach (saddle to bar)',
-  saddleSetback: 'Saddle setback',
-  stemLength: 'Stem length',
-  saddleToBarDrop: 'Saddle to bar drop',
-  handlebarWidth: 'Handlebar width',
-  crankLength: 'Crank length',
-}
+// Letters match the callouts baked into bike-graphic-v5.jpg (see
+// FitDiagram.jsx) — the designer's lettering skips F, going straight from
+// E to G.
+const measurements = [
+  { key: 'saddleHeight', label: 'Saddle height', letter: 'A' },
+  { key: 'reach', label: 'Reach (saddle to bar)', letter: 'B' },
+  { key: 'saddleSetback', label: 'Saddle setback', letter: 'C' },
+  { key: 'stemLength', label: 'Stem length', letter: 'D' },
+  { key: 'saddleToBarDrop', label: 'Saddle to bar drop', letter: 'E' },
+  { key: 'handlebarWidth', label: 'Handlebar width', letter: 'G' },
+  { key: 'crankLength', label: 'Crank length', letter: 'H' },
+]
 
 const cleatLabels = {
   sitBoneWidth: 'Sit-bone width',
@@ -115,10 +118,10 @@ export default function ClientProfileView() {
           </h2>
           <FitDiagram />
           <div className="mt-3 overflow-hidden rounded-xl border border-border">
-            {Object.entries(measurementLabels).map(([key, label], i) => (
+            {measurements.map(({ key, label, letter }, i) => (
               <Row
                 key={key}
-                number={i + 1}
+                letter={letter}
                 label={label}
                 value={profile.measurements?.[key]}
                 striped={i % 2 === 1}
@@ -164,7 +167,7 @@ export default function ClientProfileView() {
   )
 }
 
-function Row({ label, value, striped, number }) {
+function Row({ label, value, striped, letter }) {
   return (
     <div
       className={`flex items-center justify-between px-4 py-3.5 ${
@@ -172,9 +175,9 @@ function Row({ label, value, striped, number }) {
       }`}
     >
       <span className="flex items-center gap-2.5 text-sm text-muted">
-        {number && (
+        {letter && (
           <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-orange/40 text-[10px] font-bold text-orange">
-            {number}
+            {letter}
           </span>
         )}
         {label}
