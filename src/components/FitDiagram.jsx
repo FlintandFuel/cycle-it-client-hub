@@ -1,4 +1,4 @@
-import bikeGraphic from '../assets/bike-graphic-v5.jpg'
+import bikeGraphic from '../assets/bike-graphic-v6.jpg'
 
 // The artwork itself now has the measurement callouts (lettered A-E, G, H
 // — skipping F) baked in by the designer, so this just displays it. The

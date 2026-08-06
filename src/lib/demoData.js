@@ -32,10 +32,20 @@ export const demoProfile = {
     crankLength: '175mm',
   },
 
+  measurementRecommendations: {
+    saddleHeight: '',
+    reach: '',
+    saddleSetback: '',
+    stemLength: 'Consider a shorter stem if reach still feels long after settling in',
+    saddleToBarDrop: '',
+    handlebarWidth: '',
+    crankLength: '',
+  },
+
   cleatFit: {
     sitBoneWidth: '120mm',
     kneeAngle: '40°',
-    cleatPosition: '190mm',
+    cleatPosition: { left: '190mm', right: '188mm' },
   },
 
   notes:
@@ -82,7 +92,7 @@ const demoClientB = {
     crankLength: '170mm',
   },
 
-  cleatFit: { sitBoneWidth: '112mm', kneeAngle: '38°', cleatPosition: '182mm' },
+  cleatFit: { sitBoneWidth: '112mm', kneeAngle: '38°', cleatPosition: { left: '182mm', right: '182mm' } },
 
   notes:
     'All bolts torqued to manufacturer spec and checked with a torque wrench. Please re-check saddle and stem bolts after your first two rides as cables and components settle. Contact us if you feel any discomfort after your first few sessions.',
@@ -117,7 +127,7 @@ const demoClientC = {
     crankLength: '177.5mm',
   },
 
-  cleatFit: { sitBoneWidth: '128mm', kneeAngle: '42°', cleatPosition: '195mm' },
+  cleatFit: { sitBoneWidth: '128mm', kneeAngle: '42°', cleatPosition: { left: '195mm', right: '197mm' } },
 
   notes:
     'All bolts torqued to manufacturer spec and checked with a torque wrench. Please re-check saddle and stem bolts after your first two rides as cables and components settle. Contact us if you feel any discomfort after your first few sessions.',

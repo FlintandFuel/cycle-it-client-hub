@@ -7,7 +7,7 @@ import { ALLOWED_EMAILS } from '../lib/allowedEmails'
 import FitDiagram from '../components/FitDiagram'
 import logo from '../assets/cycle-it-logo-white.png'
 
-// Letters match the callouts baked into bike-graphic-v5.jpg (see
+// Letters match the callouts baked into bike-graphic-v6.jpg (see
 // FitDiagram.jsx) — the designer's lettering skips F, going straight from
 // E to G.
 const measurements = [
@@ -19,12 +19,6 @@ const measurements = [
   { key: 'handlebarWidth', label: 'Handlebar width', letter: 'G' },
   { key: 'crankLength', label: 'Crank length', letter: 'H' },
 ]
-
-const cleatLabels = {
-  sitBoneWidth: 'Sit-bone width',
-  kneeAngle: 'Knee angle',
-  cleatPosition: 'Cleat position',
-}
 
 function formatDate(iso) {
   if (!iso) return ''
@@ -118,12 +112,20 @@ export default function ClientProfileView() {
           </h2>
           <FitDiagram />
           <div className="mt-3 overflow-hidden rounded-xl border border-border">
+            <div className="flex items-center justify-between gap-4 bg-ink-raised px-4 py-2.5 text-[11px] font-semibold uppercase tracking-wide text-muted">
+              <span>Measurement</span>
+              <span className="flex shrink-0 gap-6">
+                <span className="w-20 text-right">Value</span>
+                <span className="w-28 text-right">Recommendation</span>
+              </span>
+            </div>
             {measurements.map(({ key, label, letter }, i) => (
               <Row
                 key={key}
                 letter={letter}
                 label={label}
                 value={profile.measurements?.[key]}
+                recommendation={profile.measurementRecommendations?.[key]}
                 striped={i % 2 === 1}
               />
             ))}
@@ -136,14 +138,21 @@ export default function ClientProfileView() {
             Cleat fit
           </h2>
           <div className="overflow-hidden rounded-xl border border-border">
-            {Object.entries(cleatLabels).map(([key, label], i) => (
-              <Row
-                key={key}
-                label={label}
-                value={profile.cleatFit?.[key]}
-                striped={i % 2 === 1}
-              />
-            ))}
+            <Row label="Sit-bone width" value={profile.cleatFit?.sitBoneWidth} />
+            <Row label="Knee angle" value={profile.cleatFit?.kneeAngle} striped />
+            <div className="flex items-center justify-between px-4 py-3.5 bg-ink">
+              <span className="text-sm text-muted">Cleat position</span>
+              <span className="flex shrink-0 gap-6 text-sm font-medium text-off-white">
+                <span>
+                  <span className="mr-1.5 text-xs font-normal text-muted">L</span>
+                  {profile.cleatFit?.cleatPosition?.left || '—'}
+                </span>
+                <span>
+                  <span className="mr-1.5 text-xs font-normal text-muted">R</span>
+                  {profile.cleatFit?.cleatPosition?.right || '—'}
+                </span>
+              </span>
+            </div>
           </div>
         </section>
 
@@ -167,14 +176,15 @@ export default function ClientProfileView() {
   )
 }
 
-function Row({ label, value, striped, letter }) {
+function Row({ label, value, recommendation, striped, letter }) {
+  const hasRecommendation = recommendation !== undefined
   return (
     <div
-      className={`flex items-center justify-between px-4 py-3.5 ${
+      className={`flex items-start justify-between gap-4 px-4 py-3.5 ${
         striped ? 'bg-ink-raised' : 'bg-ink'
       }`}
     >
-      <span className="flex items-center gap-2.5 text-sm text-muted">
+      <span className="flex items-center gap-2.5 pt-0.5 text-sm text-muted">
         {letter && (
           <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-orange/40 text-[10px] font-bold text-orange">
             {letter}
@@ -182,7 +192,12 @@ function Row({ label, value, striped, letter }) {
         )}
         {label}
       </span>
-      <span className="text-sm font-medium text-off-white">{value || '—'}</span>
+      <span className="flex shrink-0 gap-6">
+        <span className="w-20 pt-0.5 text-right text-sm font-medium text-off-white">{value || '—'}</span>
+        {hasRecommendation && (
+          <span className="w-28 pt-0.5 text-right text-sm text-off-white/80">{recommendation || '—'}</span>
+        )}
+      </span>
     </div>
   )
 }

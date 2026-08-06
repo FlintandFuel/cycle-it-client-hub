@@ -43,7 +43,20 @@ const emptyForm = {
     handlebarWidth: '',
     crankLength: '',
   },
-  cleatFit: { sitBoneWidth: '', kneeAngle: '', cleatPosition: '' },
+  measurementRecommendations: {
+    saddleHeight: '',
+    reach: '',
+    saddleSetback: '',
+    stemLength: '',
+    saddleToBarDrop: '',
+    handlebarWidth: '',
+    crankLength: '',
+  },
+  cleatFit: {
+    sitBoneWidth: '',
+    kneeAngle: '',
+    cleatPosition: { left: '', right: '' },
+  },
   notes: DEFAULT_NOTES,
   client: { name: '', email: '', phone: '', consentGiven: false },
 }
@@ -56,12 +69,6 @@ const measurementLabels = {
   saddleToBarDrop: 'Saddle to bar drop',
   handlebarWidth: 'Handlebar width',
   crankLength: 'Crank length',
-}
-
-const cleatLabels = {
-  sitBoneWidth: 'Sit-bone width',
-  kneeAngle: 'Knee angle',
-  cleatPosition: 'Cleat position',
 }
 
 export default function FitterView() {
@@ -104,6 +111,16 @@ export default function FitterView() {
         ? { ...prev, [section]: { ...prev[section], [key]: value } }
         : { ...prev, [key]: value },
     )
+  }
+
+  function setCleatPosition(side, value) {
+    setForm((prev) => ({
+      ...prev,
+      cleatFit: {
+        ...prev.cleatFit,
+        cleatPosition: { ...prev.cleatFit.cleatPosition, [side]: value },
+      },
+    }))
   }
 
   function validate() {
@@ -330,33 +347,65 @@ export default function FitterView() {
           </div>
         </SectionCard>
 
-        <SectionCard step="02" title="Measurements">
-          <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+        <SectionCard
+          step="02"
+          title="Measurements"
+          subtitle="Recommendations show alongside each measurement on the client's fit profile."
+        >
+          <div className="space-y-5">
             {Object.entries(measurementLabels).map(([key, label]) => (
-              <Field
-                key={key}
-                label={label}
-                name={`measurements.${key}`}
-                value={form.measurements[key]}
-                onChange={(e) => setField('measurements', key, e.target.value)}
-                placeholder="e.g. 730mm"
-              />
+              <div key={key} className="grid grid-cols-1 gap-3 rounded-lg border border-border p-4 sm:grid-cols-2">
+                <Field
+                  label={label}
+                  name={`measurements.${key}`}
+                  value={form.measurements[key]}
+                  onChange={(e) => setField('measurements', key, e.target.value)}
+                  placeholder="e.g. 730mm"
+                />
+                <Field
+                  label="Recommendation"
+                  name={`measurementRecommendations.${key}`}
+                  value={form.measurementRecommendations[key]}
+                  onChange={(e) => setField('measurementRecommendations', key, e.target.value)}
+                  placeholder="e.g. Reassess in 3 months"
+                />
+              </div>
             ))}
           </div>
         </SectionCard>
 
         <SectionCard step="03" title="Cleat fit">
           <div className="grid grid-cols-1 gap-5 sm:grid-cols-3">
-            {Object.entries(cleatLabels).map(([key, label]) => (
-              <Field
-                key={key}
-                label={label}
-                name={`cleatFit.${key}`}
-                value={form.cleatFit[key]}
-                onChange={(e) => setField('cleatFit', key, e.target.value)}
-                placeholder="e.g. 120mm"
-              />
-            ))}
+            <Field
+              label="Sit-bone width"
+              name="cleatFit.sitBoneWidth"
+              value={form.cleatFit.sitBoneWidth}
+              onChange={(e) => setField('cleatFit', 'sitBoneWidth', e.target.value)}
+              placeholder="e.g. 120mm"
+            />
+            <Field
+              label="Knee angle"
+              name="cleatFit.kneeAngle"
+              value={form.cleatFit.kneeAngle}
+              onChange={(e) => setField('cleatFit', 'kneeAngle', e.target.value)}
+              placeholder="e.g. 40°"
+            />
+          </div>
+          <div className="mt-5 grid grid-cols-1 gap-5 sm:grid-cols-2">
+            <Field
+              label="Cleat position — left"
+              name="cleatFit.cleatPosition.left"
+              value={form.cleatFit.cleatPosition.left}
+              onChange={(e) => setCleatPosition('left', e.target.value)}
+              placeholder="e.g. 190mm"
+            />
+            <Field
+              label="Cleat position — right"
+              name="cleatFit.cleatPosition.right"
+              value={form.cleatFit.cleatPosition.right}
+              onChange={(e) => setCleatPosition('right', e.target.value)}
+              placeholder="e.g. 190mm"
+            />
           </div>
         </SectionCard>
 
