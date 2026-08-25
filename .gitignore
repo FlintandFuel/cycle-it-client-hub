@@ -6,3 +6,12 @@ dist
 firebase-debug.log
 firestore-debug.log
 functions/node_modules
+
+# Design source files and reference material kept at repo root during
+# iteration — not build inputs (the app reads from src/assets/), and some
+# reference real client fit-chart data, so they stay out of git.
+*.af
+bike-graphic-v*.jpg
+bikefit-diag.png
+*.xlsx
+cycle-it logo-300px_white.png
