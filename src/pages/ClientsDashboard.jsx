@@ -165,9 +165,6 @@ export default function ClientsDashboard() {
                       >
                         {p.client?.name}
                       </Link>
-                      {g.profiles.length > 1 && (
-                        <span className="ml-1.5 text-xs text-muted">({g.profiles.length} fits)</span>
-                      )}
                       <p className="text-xs text-muted sm:hidden">{p.bike?.make} {p.bike?.model}</p>
                     </div>
                     <p className="hidden text-sm text-off-white/90 sm:block">
