@@ -153,7 +153,7 @@ the app config (not a secret; Firebase's security model is enforced by
    needed (`GMAIL_CLIENT_ID`, `GMAIL_CLIENT_SECRET`,
    `GMAIL_REFRESH_TOKEN`, `GMAIL_SENDER_EMAIL`) — from a Google Cloud
    OAuth client authorized against Cycle-It's sending mailbox
-   (`cycleitt@gmail.com` — distinct from Ruan's personal Gmail used to
+   (`cycle.itt@gmail.com` — distinct from Ruan's personal Gmail used to
    sign in to `/clients`) with the `gmail.send` scope. Copy the file to
    `functions/.env` and fill it in (git-ignored).
 
@@ -162,7 +162,7 @@ the app config (not a secret; Firebase's security model is enforced by
       the `cycle-it-client-hub` project (same project as Firebase).
    2. **APIs & Services → Library** — enable the **Gmail API**.
    3. **APIs & Services → Google Auth Platform** (formerly "OAuth consent
-      screen") — set it up: External user type, add `cycleitt@gmail.com`
+      screen") — set it up: External user type, add `cycle.itt@gmail.com`
       as a test user (the app stays unverified/in Testing, which is fine
       for this single-mailbox use case).
    4. **Clients → Create client**, type **Web application**, with
@@ -172,14 +172,14 @@ the app config (not a secret; Firebase's security model is enforced by
       Playground.) This gives you `GMAIL_CLIENT_ID` and
       `GMAIL_CLIENT_SECRET`.
    5. Get a refresh token for the `https://www.googleapis.com/auth/gmail.send`
-      scope, authorized as `cycleitt@gmail.com` — easiest way is
+      scope, authorized as `cycle.itt@gmail.com` — easiest way is
       [Google's OAuth 2.0 Playground](https://developers.google.com/oauthplayground):
       gear icon → "Use your own OAuth credentials" → paste the client
       ID/secret → add the Gmail send scope under "Input your own scopes"
-      → Authorize APIs → sign in as `cycleitt@gmail.com` (click through
+      → Authorize APIs → sign in as `cycle.itt@gmail.com` (click through
       the "unverified app" warning) → exchange authorization code for
       tokens → copy the refresh token.
-   6. `GMAIL_SENDER_EMAIL` is `cycleitt@gmail.com`.
+   6. `GMAIL_SENDER_EMAIL` is `cycle.itt@gmail.com`.
 2. **Deploy functions + hosting:**
    ```
    firebase deploy
