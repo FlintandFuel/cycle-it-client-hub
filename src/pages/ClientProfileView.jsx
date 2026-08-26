@@ -112,12 +112,10 @@ export default function ClientProfileView() {
           </h2>
           <FitDiagram />
           <div className="mt-3 overflow-hidden rounded-xl border border-border">
-            <div className="flex items-center justify-between gap-4 bg-ink-raised px-4 py-2.5 text-[11px] font-semibold uppercase tracking-wide text-muted">
+            <div className="grid grid-cols-[minmax(0,1fr)_5rem_7rem] items-center gap-4 bg-ink-raised px-4 py-2.5 text-[11px] font-semibold uppercase tracking-wide text-muted">
               <span>Measurement</span>
-              <span className="flex shrink-0 gap-6">
-                <span className="w-20 text-right">Value</span>
-                <span className="w-28 text-right">Recommendation</span>
-              </span>
+              <span className="text-right">Value</span>
+              <span className="text-right">Recommendation</span>
             </div>
             {measurements.map(({ key, label, letter }, i) => (
               <Row
@@ -126,6 +124,7 @@ export default function ClientProfileView() {
                 label={label}
                 value={profile.measurements?.[key]}
                 recommendation={profile.measurementRecommendations?.[key]}
+                showRecommendation
                 striped={i % 2 === 1}
               />
             ))}
@@ -176,28 +175,25 @@ export default function ClientProfileView() {
   )
 }
 
-function Row({ label, value, recommendation, striped, letter }) {
-  const hasRecommendation = recommendation !== undefined
+function Row({ label, value, recommendation, striped, letter, showRecommendation }) {
   return (
     <div
-      className={`flex items-start justify-between gap-4 px-4 py-3.5 ${
-        striped ? 'bg-ink-raised' : 'bg-ink'
-      }`}
+      className={`grid items-start gap-4 px-4 py-3.5 ${
+        showRecommendation ? 'grid-cols-[minmax(0,1fr)_5rem_7rem]' : 'grid-cols-[minmax(0,1fr)_5rem]'
+      } ${striped ? 'bg-ink-raised' : 'bg-ink'}`}
     >
-      <span className="flex items-center gap-2.5 pt-0.5 text-sm text-muted">
+      <span className="flex min-w-0 items-center gap-2.5 pt-0.5 text-sm text-muted">
         {letter && (
           <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-orange/40 text-[10px] font-bold text-orange">
             {letter}
           </span>
         )}
-        {label}
+        <span className="min-w-0 break-words">{label}</span>
       </span>
-      <span className="flex shrink-0 gap-6">
-        <span className="w-20 pt-0.5 text-right text-sm font-medium text-off-white">{value || '—'}</span>
-        {hasRecommendation && (
-          <span className="w-28 pt-0.5 text-right text-sm text-off-white/80">{recommendation || '—'}</span>
-        )}
-      </span>
+      <span className="pt-0.5 text-right text-sm font-medium text-off-white">{value || '—'}</span>
+      {showRecommendation && (
+        <span className="pt-0.5 text-right text-sm text-off-white/80">{recommendation || '—'}</span>
+      )}
     </div>
   )
 }
