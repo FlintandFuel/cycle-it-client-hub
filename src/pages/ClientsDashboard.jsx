@@ -43,6 +43,36 @@ function useSortedProfiles(profiles, sort) {
   }, [profiles, sort])
 }
 
+const SORT_OPTIONS = [
+  { key: 'client', dir: 'asc', label: 'Client (A–Z)' },
+  { key: 'client', dir: 'desc', label: 'Client (Z–A)' },
+  { key: 'bike', dir: 'asc', label: 'Bike (A–Z)' },
+  { key: 'bike', dir: 'desc', label: 'Bike (Z–A)' },
+  { key: 'fitDate', dir: 'desc', label: 'Fit date (newest)' },
+  { key: 'fitDate', dir: 'asc', label: 'Fit date (oldest)' },
+]
+
+function MobileSortSelect({ sort, onChange }) {
+  const value = sort.key ? `${sort.key}-${sort.dir}` : ''
+  return (
+    <select
+      value={value}
+      onChange={(e) => {
+        const [key, dir] = e.target.value ? e.target.value.split('-') : [null, 'asc']
+        onChange({ key, dir })
+      }}
+      className="w-full rounded-lg border border-border bg-ink-raised px-3 py-2.5 text-sm text-off-white focus:border-orange focus:outline-none"
+    >
+      <option value="">Sort by…</option>
+      {SORT_OPTIONS.map(({ key, dir, label }) => (
+        <option key={`${key}-${dir}`} value={`${key}-${dir}`}>
+          {label}
+        </option>
+      ))}
+    </select>
+  )
+}
+
 function SortHeader({ label, sortKey, sort, onSort }) {
   const active = sort.key === sortKey
   return (
@@ -103,45 +133,50 @@ export default function ClientsDashboard() {
         )}
 
         {profiles && profiles.length > 0 && (
-          <div className="overflow-hidden rounded-xl border border-border">
-            <div className="hidden grid-cols-[2fr_2fr_1fr_2fr_1fr] gap-4 border-b border-border bg-ink-raised px-5 py-3 text-xs font-semibold uppercase tracking-wide text-muted sm:grid">
-              <SortHeader label="Client" sortKey="client" sort={sort} onSort={handleSort} />
-              <SortHeader label="Bike" sortKey="bike" sort={sort} onSort={handleSort} />
-              <SortHeader label="Fit date" sortKey="fitDate" sort={sort} onSort={handleSort} />
-              <span>Status</span>
-              <span />
+          <>
+            <div className="mb-3 sm:hidden">
+              <MobileSortSelect sort={sort} onChange={setSort} />
             </div>
-            {sortedProfiles.map((p, i) => (
-              <div
-                key={p.id}
-                className={`grid grid-cols-1 gap-2 px-5 py-4 sm:grid-cols-[2fr_2fr_1fr_2fr_1fr] sm:items-center sm:gap-4 ${
-                  i % 2 === 1 ? 'bg-ink-raised' : 'bg-ink'
-                }`}
-              >
-                <div>
-                  <p className="font-medium text-off-white">{p.client?.name}</p>
-                  <p className="text-xs text-muted sm:hidden">{p.bike?.make} {p.bike?.model}</p>
-                </div>
-                <p className="hidden text-sm text-off-white/90 sm:block">
-                  {p.bike?.make} {p.bike?.model}
-                </p>
-                <p className="text-sm text-muted">{formatDate(p.fitDate)}</p>
-                <div className="flex flex-wrap gap-1.5">
-                  {p.emailStatus?.profileEmailSent && <Badge tone="on">Email sent</Badge>}
-                  {p.review?.optedOut && <Badge>Review opted out</Badge>}
-                  {p.followUp?.sent && <Badge tone="on">Follow-up sent</Badge>}
-                </div>
-                <Link
-                  to={`/p/${p.id}`}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="text-sm font-medium text-orange hover:text-orange-light"
-                >
-                  View profile →
-                </Link>
+            <div className="overflow-hidden rounded-xl border border-border">
+              <div className="hidden grid-cols-[2fr_2fr_1fr_2fr_1fr] gap-4 border-b border-border bg-ink-raised px-5 py-3 text-xs font-semibold uppercase tracking-wide text-muted sm:grid">
+                <SortHeader label="Client" sortKey="client" sort={sort} onSort={handleSort} />
+                <SortHeader label="Bike" sortKey="bike" sort={sort} onSort={handleSort} />
+                <SortHeader label="Fit date" sortKey="fitDate" sort={sort} onSort={handleSort} />
+                <span>Status</span>
+                <span />
               </div>
-            ))}
-          </div>
+              {sortedProfiles.map((p, i) => (
+                <div
+                  key={p.id}
+                  className={`grid grid-cols-1 gap-2 px-5 py-4 sm:grid-cols-[2fr_2fr_1fr_2fr_1fr] sm:items-center sm:gap-4 ${
+                    i % 2 === 1 ? 'bg-ink-raised' : 'bg-ink'
+                  }`}
+                >
+                  <div>
+                    <p className="font-medium text-off-white">{p.client?.name}</p>
+                    <p className="text-xs text-muted sm:hidden">{p.bike?.make} {p.bike?.model}</p>
+                  </div>
+                  <p className="hidden text-sm text-off-white/90 sm:block">
+                    {p.bike?.make} {p.bike?.model}
+                  </p>
+                  <p className="text-sm text-muted">{formatDate(p.fitDate)}</p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {p.emailStatus?.profileEmailSent && <Badge tone="on">Email sent</Badge>}
+                    {p.review?.optedOut && <Badge>Review opted out</Badge>}
+                    {p.followUp?.sent && <Badge tone="on">Follow-up sent</Badge>}
+                  </div>
+                  <Link
+                    to={`/p/${p.id}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-sm font-medium text-orange hover:text-orange-light"
+                  >
+                    View profile →
+                  </Link>
+                </div>
+              ))}
+            </div>
+          </>
         )}
       </div>
     </div>
