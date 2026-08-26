@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { listProfiles } from '../lib/profileStore'
+import { groupProfilesByClient } from '../lib/groupClients'
 import logo from '../assets/cycle-it-logo-white.png'
 
 function formatDate(iso) {
@@ -20,19 +21,21 @@ function Badge({ children, tone = 'default' }) {
   )
 }
 
+// Each row is a client (grouped across their fit sessions — see
+// groupClients.js), so these sort by the client's most recent session.
 // fitDate is stored as a "YYYY-MM-DD" string (see functions/index.js), so
 // it sorts correctly as plain text — no date parsing needed.
 const SORT_ACCESSORS = {
-  client: (p) => p.client?.name || '',
-  bike: (p) => `${p.bike?.make || ''} ${p.bike?.model || ''}`.trim(),
-  fitDate: (p) => p.fitDate || '',
+  client: (g) => g.latestProfile.client?.name || '',
+  bike: (g) => `${g.latestProfile.bike?.make || ''} ${g.latestProfile.bike?.model || ''}`.trim(),
+  fitDate: (g) => g.latestProfile.fitDate || '',
 }
 
-function useSortedProfiles(profiles, sort) {
+function useSortedGroups(groups, sort) {
   return useMemo(() => {
-    if (!profiles || !sort.key) return profiles
+    if (!groups || !sort.key) return groups
     const accessor = SORT_ACCESSORS[sort.key]
-    const sorted = [...profiles].sort((a, b) => {
+    const sorted = [...groups].sort((a, b) => {
       const cmp = String(accessor(a)).localeCompare(String(accessor(b)), undefined, {
         sensitivity: 'base',
         numeric: true,
@@ -40,7 +43,7 @@ function useSortedProfiles(profiles, sort) {
       return sort.dir === 'asc' ? cmp : -cmp
     })
     return sorted
-  }, [profiles, sort])
+  }, [groups, sort])
 }
 
 const SORT_OPTIONS = [
@@ -48,8 +51,8 @@ const SORT_OPTIONS = [
   { key: 'client', dir: 'desc', label: 'Client (Z–A)' },
   { key: 'bike', dir: 'asc', label: 'Bike (A–Z)' },
   { key: 'bike', dir: 'desc', label: 'Bike (Z–A)' },
-  { key: 'fitDate', dir: 'desc', label: 'Fit date (newest)' },
-  { key: 'fitDate', dir: 'asc', label: 'Fit date (oldest)' },
+  { key: 'fitDate', dir: 'desc', label: 'Last fit (newest)' },
+  { key: 'fitDate', dir: 'asc', label: 'Last fit (oldest)' },
 ]
 
 function MobileSortSelect({ sort, onChange }) {
@@ -100,7 +103,8 @@ export default function ClientsDashboard() {
       .catch(() => setError('Could not load clients. You may not have access.'))
   }, [])
 
-  const sortedProfiles = useSortedProfiles(profiles, sort)
+  const groups = useMemo(() => (profiles ? groupProfilesByClient(profiles) : profiles), [profiles])
+  const sortedGroups = useSortedGroups(groups, sort)
 
   function handleSort(key) {
     setSort((prev) => (prev.key === key ? { key, dir: prev.dir === 'asc' ? 'desc' : 'asc' } : { key, dir: 'asc' }))
@@ -132,7 +136,7 @@ export default function ClientsDashboard() {
           <p className="text-muted">No fit profiles yet — save one from the fitter view.</p>
         )}
 
-        {profiles && profiles.length > 0 && (
+        {groups && groups.length > 0 && (
           <>
             <div className="mb-3 sm:hidden">
               <MobileSortSelect sort={sort} onChange={setSort} />
@@ -141,40 +145,51 @@ export default function ClientsDashboard() {
               <div className="hidden grid-cols-[2fr_2fr_1fr_2fr_1fr] gap-4 border-b border-border bg-ink-raised px-5 py-3 text-xs font-semibold uppercase tracking-wide text-muted sm:grid">
                 <SortHeader label="Client" sortKey="client" sort={sort} onSort={handleSort} />
                 <SortHeader label="Bike" sortKey="bike" sort={sort} onSort={handleSort} />
-                <SortHeader label="Fit date" sortKey="fitDate" sort={sort} onSort={handleSort} />
+                <SortHeader label="Last fit" sortKey="fitDate" sort={sort} onSort={handleSort} />
                 <span>Status</span>
                 <span />
               </div>
-              {sortedProfiles.map((p, i) => (
-                <div
-                  key={p.id}
-                  className={`grid grid-cols-1 gap-2 px-5 py-4 sm:grid-cols-[2fr_2fr_1fr_2fr_1fr] sm:items-center sm:gap-4 ${
-                    i % 2 === 1 ? 'bg-ink-raised' : 'bg-ink'
-                  }`}
-                >
-                  <div>
-                    <p className="font-medium text-off-white">{p.client?.name}</p>
-                    <p className="text-xs text-muted sm:hidden">{p.bike?.make} {p.bike?.model}</p>
-                  </div>
-                  <p className="hidden text-sm text-off-white/90 sm:block">
-                    {p.bike?.make} {p.bike?.model}
-                  </p>
-                  <p className="text-sm text-muted">{formatDate(p.fitDate)}</p>
-                  <div className="flex flex-wrap gap-1.5">
-                    {p.emailStatus?.profileEmailSent && <Badge tone="on">Email sent</Badge>}
-                    {p.review?.optedOut && <Badge>Review opted out</Badge>}
-                    {p.followUp?.sent && <Badge tone="on">Follow-up sent</Badge>}
-                  </div>
-                  <Link
-                    to={`/p/${p.id}`}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="text-sm font-medium text-orange hover:text-orange-light"
+              {sortedGroups.map((g, i) => {
+                const p = g.latestProfile
+                return (
+                  <div
+                    key={p.id}
+                    className={`grid grid-cols-1 gap-2 px-5 py-4 sm:grid-cols-[2fr_2fr_1fr_2fr_1fr] sm:items-center sm:gap-4 ${
+                      i % 2 === 1 ? 'bg-ink-raised' : 'bg-ink'
+                    }`}
                   >
-                    View profile →
-                  </Link>
-                </div>
-              ))}
+                    <div>
+                      <Link
+                        to={`/clients/${p.id}`}
+                        className="font-medium text-off-white hover:text-orange hover:underline"
+                      >
+                        {p.client?.name}
+                      </Link>
+                      {g.profiles.length > 1 && (
+                        <span className="ml-1.5 text-xs text-muted">({g.profiles.length} fits)</span>
+                      )}
+                      <p className="text-xs text-muted sm:hidden">{p.bike?.make} {p.bike?.model}</p>
+                    </div>
+                    <p className="hidden text-sm text-off-white/90 sm:block">
+                      {p.bike?.make} {p.bike?.model}
+                    </p>
+                    <p className="text-sm text-muted">{formatDate(p.fitDate)}</p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {p.emailStatus?.profileEmailSent && <Badge tone="on">Email sent</Badge>}
+                      {p.review?.optedOut && <Badge>Review opted out</Badge>}
+                      {p.followUp?.sent && <Badge tone="on">Follow-up sent</Badge>}
+                    </div>
+                    <Link
+                      to={`/p/${p.id}`}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-sm font-medium text-orange hover:text-orange-light"
+                    >
+                      View profile →
+                    </Link>
+                  </div>
+                )
+              })}
             </div>
           </>
         )}

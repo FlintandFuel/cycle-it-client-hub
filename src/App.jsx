@@ -2,6 +2,7 @@ import { Routes, Route, Navigate } from 'react-router-dom'
 import FitterView from './pages/FitterView'
 import ClientProfileView from './pages/ClientProfileView'
 import ClientsDashboard from './pages/ClientsDashboard'
+import ClientHistoryView from './pages/ClientHistoryView'
 import BookedConfirmation from './pages/BookedConfirmation'
 import AuthGate from './components/AuthGate'
 
@@ -17,6 +18,14 @@ export default function App() {
         element={
           <AuthGate>
             <ClientsDashboard />
+          </AuthGate>
+        }
+      />
+      <Route
+        path="/clients/:profileId"
+        element={
+          <AuthGate>
+            <ClientHistoryView />
           </AuthGate>
         }
       />
