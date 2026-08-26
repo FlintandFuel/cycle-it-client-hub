@@ -11,6 +11,14 @@ export default function App() {
     <Routes>
       <Route path="/" element={<Navigate to="/new" replace />} />
       <Route path="/new" element={<FitterView />} />
+      <Route
+        path="/edit/:id"
+        element={
+          <AuthGate>
+            <FitterView />
+          </AuthGate>
+        }
+      />
       <Route path="/p/:id" element={<ClientProfileView />} />
       <Route path="/booked" element={<BookedConfirmation />} />
       <Route

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
-import { useParams, Link } from 'react-router-dom'
+import { useParams, useNavigate, Link } from 'react-router-dom'
 import { onAuthStateChanged } from 'firebase/auth'
-import { getProfile } from '../lib/profileStore'
+import { getProfile, deleteProfile } from '../lib/profileStore'
 import { auth } from '../lib/firebase'
 import { ALLOWED_EMAILS } from '../lib/allowedEmails'
 import FitDiagram from '../components/FitDiagram'
@@ -28,8 +28,10 @@ function formatDate(iso) {
 
 export default function ClientProfileView() {
   const { id } = useParams()
+  const navigate = useNavigate()
   const [profile, setProfile] = useState(undefined)
   const [isFitter, setIsFitter] = useState(false)
+  const [deleting, setDeleting] = useState(false)
 
   useEffect(() => {
     let active = true
@@ -45,6 +47,19 @@ export default function ClientProfileView() {
   // never gates the page itself, since this URL is meant to open for
   // clients straight from an email link with no sign-in of their own.
   useEffect(() => onAuthStateChanged(auth, (u) => setIsFitter(!!u && ALLOWED_EMAILS.includes(u.email))), [])
+
+  async function handleDelete() {
+    if (!window.confirm(`Delete ${profile.client?.name}'s fit from ${formatDate(profile.fitDate)}? This can't be undone.`)) {
+      return
+    }
+    setDeleting(true)
+    try {
+      await deleteProfile(id)
+      navigate('/clients')
+    } finally {
+      setDeleting(false)
+    }
+  }
 
   if (profile === undefined) {
     return (
@@ -69,12 +84,30 @@ export default function ClientProfileView() {
     <div className="min-h-screen bg-ink pb-16">
       <div className="mx-auto max-w-md px-5 pt-10 sm:max-w-lg">
         {isFitter && (
-          <Link
-            to="/clients"
-            className="mb-4 inline-block text-sm text-muted underline decoration-border underline-offset-4 hover:text-off-white"
-          >
-            ← All clients
-          </Link>
+          <div className="mb-4 flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
+            <Link
+              to="/clients"
+              className="text-sm text-muted underline decoration-border underline-offset-4 hover:text-off-white"
+            >
+              ← All clients
+            </Link>
+            <div className="flex items-center gap-4">
+              <Link
+                to={`/edit/${id}`}
+                className="text-sm text-muted underline decoration-border underline-offset-4 hover:text-off-white"
+              >
+                Edit
+              </Link>
+              <button
+                type="button"
+                onClick={handleDelete}
+                disabled={deleting}
+                className="text-sm text-red-400 underline decoration-red-900 underline-offset-4 hover:text-red-300 disabled:opacity-60"
+              >
+                {deleting ? 'Deleting…' : 'Delete'}
+              </button>
+            </div>
+          </div>
         )}
         <img src={logo} alt="Cycle-It" className="h-16 w-auto" />
         <h1 className="mt-4 text-2xl font-bold text-off-white">Your bike fit profile</h1>

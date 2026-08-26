@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
-import { Link, useParams } from 'react-router-dom'
-import { listProfiles } from '../lib/profileStore'
+import { Link, useNavigate, useParams } from 'react-router-dom'
+import { listProfiles, deleteProfile } from '../lib/profileStore'
 import { groupProfilesByClient, findClientGroup } from '../lib/groupClients'
 import logo from '../assets/cycle-it-logo-white.png'
 
@@ -26,8 +26,10 @@ function Badge({ children, tone = 'default' }) {
 // everyone on every load and picks out whichever group that id belongs to.
 export default function ClientHistoryView() {
   const { profileId } = useParams()
+  const navigate = useNavigate()
   const [profiles, setProfiles] = useState(undefined)
   const [error, setError] = useState('')
+  const [deletingId, setDeletingId] = useState(null)
 
   useEffect(() => {
     listProfiles()
@@ -36,6 +38,25 @@ export default function ClientHistoryView() {
   }, [])
 
   const group = profiles ? findClientGroup(groupProfilesByClient(profiles), profileId) : undefined
+
+  // If the deleted session is the one anchoring this URL, redirect to a
+  // sibling session (or back to /clients if that was the last one) —
+  // otherwise the group lookup above would come up empty next render even
+  // though the client may still have other fits on record.
+  async function handleDelete(p) {
+    if (!window.confirm(`Delete this fit from ${formatDate(p.fitDate)}? This can't be undone.`)) return
+    setDeletingId(p.id)
+    try {
+      await deleteProfile(p.id)
+      setProfiles((prev) => prev.filter((existing) => existing.id !== p.id))
+      if (p.id === profileId) {
+        const sibling = group.profiles.find((s) => s.id !== p.id)
+        navigate(sibling ? `/clients/${sibling.id}` : '/clients', { replace: true })
+      }
+    } finally {
+      setDeletingId(null)
+    }
+  }
 
   return (
     <div className="min-h-screen bg-ink pb-16">
@@ -77,7 +98,7 @@ export default function ClientHistoryView() {
             {group.profiles.map((p, i) => (
               <div
                 key={p.id}
-                className={`grid grid-cols-1 gap-2 px-5 py-4 sm:grid-cols-[1fr_2fr_2fr_1fr] sm:items-center sm:gap-4 ${
+                className={`grid grid-cols-1 gap-2 px-5 py-4 sm:grid-cols-[1fr_2fr_2fr_1fr_auto_auto] sm:items-center sm:gap-4 ${
                   i % 2 === 1 ? 'bg-ink-raised' : 'bg-ink'
                 }`}
               >
@@ -98,6 +119,20 @@ export default function ClientHistoryView() {
                 >
                   View profile →
                 </Link>
+                <Link
+                  to={`/edit/${p.id}`}
+                  className="text-sm text-muted underline decoration-border underline-offset-4 hover:text-off-white"
+                >
+                  Edit
+                </Link>
+                <button
+                  type="button"
+                  onClick={() => handleDelete(p)}
+                  disabled={deletingId === p.id}
+                  className="justify-self-start text-sm text-red-400 underline decoration-red-900 underline-offset-4 hover:text-red-300 disabled:opacity-60 sm:justify-self-auto"
+                >
+                  {deletingId === p.id ? 'Deleting…' : 'Delete'}
+                </button>
               </div>
             ))}
           </div>

@@ -17,8 +17,11 @@ service cloud.firestore {
 
       allow create: if request.resource.data.client.consentGiven == true;
 
-      allow update: if false;
-      allow delete: if false;
+      // Edit/delete from the fitter dashboard — same allowlist as `list`.
+      allow update: if request.auth != null &&
+        request.auth.token.email in ['ruan.photos26@gmail.com', 'cvaniek@gmail.com'];
+      allow delete: if request.auth != null &&
+        request.auth.token.email in ['ruan.photos26@gmail.com', 'cvaniek@gmail.com'];
     }
 
     // Calendly's booking-confirmation redirect lands an unauthenticated

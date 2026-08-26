@@ -9,6 +9,7 @@ import {
   getDoc,
   getDocs,
   setDoc,
+  deleteDoc,
   serverTimestamp,
   query,
   orderBy,
@@ -46,4 +47,17 @@ export async function createProfile(data) {
 export async function listProfiles() {
   const snap = await getDocs(query(collection(db, COLLECTION), orderBy('createdAt', 'desc')))
   return snap.docs.map((d) => ({ id: d.id, ...d.data() }))
+}
+
+// Requires an authenticated, allowlisted caller — see firestore.rules
+// (`allow update`). merge:true so system fields not present in `data`
+// (emailStatus, review, followUp, createdAt) are left untouched.
+export async function updateProfile(id, data) {
+  await setDoc(doc(db, COLLECTION, id), data, { merge: true })
+}
+
+// Requires an authenticated, allowlisted caller — see firestore.rules
+// (`allow delete`).
+export async function deleteProfile(id) {
+  await deleteDoc(doc(db, COLLECTION, id))
 }

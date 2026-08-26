@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate, useParams } from 'react-router-dom'
 import { onAuthStateChanged } from 'firebase/auth'
 import Field from '../components/Field'
 import SectionCard from '../components/SectionCard'
-import { createProfile } from '../lib/profileStore'
+import { createProfile, getProfile, updateProfile } from '../lib/profileStore'
 import { listRecentBookings } from '../lib/bookingStore'
 import { DEFAULT_NOTES } from '../lib/demoData'
 import { useOnlineStatus } from '../lib/useOnlineStatus'
@@ -73,6 +73,9 @@ const measurementLabels = {
 
 export default function FitterView() {
   const online = useOnlineStatus()
+  const navigate = useNavigate()
+  const { id: editId } = useParams()
+  const isEditing = Boolean(editId)
   const [form, setForm] = useState(emptyForm)
   const [errors, setErrors] = useState({})
   const [saving, setSaving] = useState(false)
@@ -81,6 +84,7 @@ export default function FitterView() {
   const [copied, setCopied] = useState(false)
   const [bookings, setBookings] = useState([])
   const [selectedBookingId, setSelectedBookingId] = useState(null)
+  const [editLoadStatus, setEditLoadStatus] = useState(isEditing ? 'loading' : 'ready')
 
   // Recent Calendly bookings (see bookingStore.js / BookedConfirmation.jsx)
   // only load for a signed-in, allowlisted fitter — reading the bookings
@@ -98,6 +102,27 @@ export default function FitterView() {
       }),
     [],
   )
+
+  // Editing an existing fit (from the profile page's "Edit" button) —
+  // loads that profile's data into the same form instead of starting
+  // blank, and handleSubmit below updates it in place rather than
+  // creating a new document.
+  useEffect(() => {
+    if (!isEditing) return
+    let active = true
+    getProfile(editId).then((p) => {
+      if (!active) return
+      if (p) {
+        setForm({ ...emptyForm, ...p })
+        setEditLoadStatus('ready')
+      } else {
+        setEditLoadStatus('not-found')
+      }
+    })
+    return () => {
+      active = false
+    }
+  }, [isEditing, editId])
 
   function useBooking(booking) {
     setSelectedBookingId(booking.id)
@@ -143,6 +168,15 @@ export default function FitterView() {
     e.preventDefault()
     if (!validate()) return
     setSaving(true)
+    if (isEditing) {
+      try {
+        await updateProfile(editId, form)
+        navigate(`/p/${editId}`)
+      } finally {
+        setSaving(false)
+      }
+      return
+    }
     setSavedOffline(!online)
     try {
       const profile = await createProfile(form)
@@ -177,6 +211,31 @@ export default function FitterView() {
     setErrors({})
     setResult(null)
     setSelectedBookingId(null)
+  }
+
+  if (editLoadStatus === 'loading') {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-ink">
+        <p className="text-muted">Loading…</p>
+      </div>
+    )
+  }
+
+  if (editLoadStatus === 'not-found') {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-ink px-6 text-center">
+        <div>
+          <p className="text-sm font-semibold uppercase tracking-widest text-orange">Not found</p>
+          <p className="mt-2 text-muted">This fit profile doesn&apos;t exist, or has been deleted.</p>
+          <Link
+            to="/clients"
+            className="mt-4 inline-block text-sm text-muted underline decoration-border underline-offset-4 hover:text-off-white"
+          >
+            ← All clients
+          </Link>
+        </div>
+      </div>
+    )
   }
 
   if (result) {
@@ -260,7 +319,9 @@ export default function FitterView() {
         <div className="mx-auto flex max-w-3xl items-start justify-between px-4 py-8 sm:px-6">
           <div>
             <img src={logo} alt="Cycle-It" className="h-16 w-auto" />
-            <h1 className="mt-4 text-2xl font-bold text-off-white sm:text-3xl">New bike fit</h1>
+            <h1 className="mt-4 text-2xl font-bold text-off-white sm:text-3xl">
+              {isEditing ? 'Edit bike fit' : 'New bike fit'}
+            </h1>
           </div>
           <div className="mt-1 flex shrink-0 flex-col items-end gap-2">
             <span
@@ -282,7 +343,7 @@ export default function FitterView() {
       </header>
 
       <form onSubmit={handleSubmit} className="mx-auto max-w-3xl space-y-6 px-4 py-8 sm:px-6">
-        {bookings.length > 0 && (
+        {!isEditing && bookings.length > 0 && (
           <SectionCard title="Recent bookings" subtitle="From Calendly — tap a client to fill in their details.">
             <div className="-mx-1 flex gap-3 overflow-x-auto px-1 pb-1">
               {bookings.map((b) => {
@@ -509,7 +570,7 @@ export default function FitterView() {
           disabled={saving}
           className="w-full rounded-lg bg-orange py-4 text-[17px] font-semibold text-ink transition-colors hover:bg-orange-light disabled:opacity-60"
         >
-          {saving ? 'Saving…' : 'Save & generate profile'}
+          {saving ? 'Saving…' : isEditing ? 'Save changes' : 'Save & generate profile'}
         </button>
       </form>
     </div>
