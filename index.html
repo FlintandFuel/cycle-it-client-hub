@@ -6,6 +6,18 @@
     <meta name="theme-color" content="#0B0B0C" />
     <link rel="icon" type="image/png" href="/src/assets/cycle-it-logo-white.png" />
     <title>Cycle-It | Bike Fit</title>
+
+    <!-- Static — link-preview bots (WhatsApp, iMessage, email clients)
+         don't run JS, so per-client titles aren't possible without
+         server-side rendering. This at least replaces the raw /p/:id URL
+         with real branding in shared-link previews. -->
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Cycle-It" />
+    <meta property="og:title" content="Cycle-It Bike Fit Profile" />
+    <meta property="og:description" content="View your bike fit measurements and recommendations from Cycle-It." />
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:title" content="Cycle-It Bike Fit Profile" />
+    <meta name="twitter:description" content="View your bike fit measurements and recommendations from Cycle-It." />
   </head>
   <body>
     <div id="root"></div>
