@@ -109,7 +109,6 @@ export default function ClientHistoryView() {
                 <div className="flex flex-wrap gap-1.5">
                   {p.emailStatus?.profileEmailSent && <Badge tone="on">Email sent</Badge>}
                   {p.review?.optedOut && <Badge>Review opted out</Badge>}
-                  {p.followUp?.sent && <Badge tone="on">Follow-up sent</Badge>}
                 </div>
                 <Link
                   to={`/p/${p.id}`}

@@ -134,7 +134,7 @@ const demoClientC = {
 
   emailStatus: { profileEmailSent: true, profileEmailSentAt: '2026-02-10T08:50:00.000Z' },
   review: { optedOut: false, clicked: true },
-  followUp: { sent: true, sentAt: '2026-05-11T08:00:00.000Z' },
+  followUp: { sent: false, sentAt: null },
 }
 
 export const demoClients = [demoProfile, demoClientB, demoClientC]
