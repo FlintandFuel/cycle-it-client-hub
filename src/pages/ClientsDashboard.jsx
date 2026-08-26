@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { listProfiles } from '../lib/profileStore'
 import logo from '../assets/cycle-it-logo-white.png'
@@ -20,15 +20,61 @@ function Badge({ children, tone = 'default' }) {
   )
 }
 
+// fitDate is stored as a "YYYY-MM-DD" string (see functions/index.js), so
+// it sorts correctly as plain text — no date parsing needed.
+const SORT_ACCESSORS = {
+  client: (p) => p.client?.name || '',
+  bike: (p) => `${p.bike?.make || ''} ${p.bike?.model || ''}`.trim(),
+  fitDate: (p) => p.fitDate || '',
+}
+
+function useSortedProfiles(profiles, sort) {
+  return useMemo(() => {
+    if (!profiles || !sort.key) return profiles
+    const accessor = SORT_ACCESSORS[sort.key]
+    const sorted = [...profiles].sort((a, b) => {
+      const cmp = String(accessor(a)).localeCompare(String(accessor(b)), undefined, {
+        sensitivity: 'base',
+        numeric: true,
+      })
+      return sort.dir === 'asc' ? cmp : -cmp
+    })
+    return sorted
+  }, [profiles, sort])
+}
+
+function SortHeader({ label, sortKey, sort, onSort }) {
+  const active = sort.key === sortKey
+  return (
+    <button
+      type="button"
+      onClick={() => onSort(sortKey)}
+      className="flex items-center gap-1 text-left uppercase tracking-wide hover:text-off-white"
+    >
+      {label}
+      <span className={`text-[9px] ${active ? 'text-orange' : 'text-muted/40'}`}>
+        {active && sort.dir === 'desc' ? '▼' : '▲'}
+      </span>
+    </button>
+  )
+}
+
 export default function ClientsDashboard() {
   const [profiles, setProfiles] = useState(undefined)
   const [error, setError] = useState('')
+  const [sort, setSort] = useState({ key: null, dir: 'asc' })
 
   useEffect(() => {
     listProfiles()
       .then(setProfiles)
       .catch(() => setError('Could not load clients. You may not have access.'))
   }, [])
+
+  const sortedProfiles = useSortedProfiles(profiles, sort)
+
+  function handleSort(key) {
+    setSort((prev) => (prev.key === key ? { key, dir: prev.dir === 'asc' ? 'desc' : 'asc' } : { key, dir: 'asc' }))
+  }
 
   return (
     <div className="min-h-screen bg-ink pb-16">
@@ -59,13 +105,13 @@ export default function ClientsDashboard() {
         {profiles && profiles.length > 0 && (
           <div className="overflow-hidden rounded-xl border border-border">
             <div className="hidden grid-cols-[2fr_2fr_1fr_2fr_1fr] gap-4 border-b border-border bg-ink-raised px-5 py-3 text-xs font-semibold uppercase tracking-wide text-muted sm:grid">
-              <span>Client</span>
-              <span>Bike</span>
-              <span>Fit date</span>
+              <SortHeader label="Client" sortKey="client" sort={sort} onSort={handleSort} />
+              <SortHeader label="Bike" sortKey="bike" sort={sort} onSort={handleSort} />
+              <SortHeader label="Fit date" sortKey="fitDate" sort={sort} onSort={handleSort} />
               <span>Status</span>
               <span />
             </div>
-            {profiles.map((p, i) => (
+            {sortedProfiles.map((p, i) => (
               <div
                 key={p.id}
                 className={`grid grid-cols-1 gap-2 px-5 py-4 sm:grid-cols-[2fr_2fr_1fr_2fr_1fr] sm:items-center sm:gap-4 ${
