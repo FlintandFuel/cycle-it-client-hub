@@ -161,9 +161,20 @@ export default function ClientsDashboard() {
                     <div>
                       <Link
                         to={`/clients/${p.id}`}
-                        className="font-medium text-off-white hover:text-orange hover:underline"
+                        title="View fit history"
+                        className="inline-flex items-center gap-1.5 font-medium text-off-white hover:text-orange hover:underline"
                       >
                         {p.client?.name}
+                        <svg
+                          viewBox="0 0 24 24"
+                          className="h-3.5 w-3.5 shrink-0 text-muted"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                        >
+                          <circle cx="12" cy="12" r="9" />
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M12 7v5l3.5 2" />
+                        </svg>
                       </Link>
                       <p className="text-xs text-muted sm:hidden">{p.bike?.make} {p.bike?.model}</p>
                     </div>
