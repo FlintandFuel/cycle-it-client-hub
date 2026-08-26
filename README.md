@@ -102,18 +102,22 @@ UI:
 1. In Calendly, open the bike-fit event type → **Confirmation Page** (or
    **"Advanced" / "After confirmation"**, depending on Calendly's current
    UI) → choose **"Redirect to an external site"**.
-2. Set the redirect URL to:
+2. Set the redirect URL to the plain page, no query params or merge tags:
    ```
-   https://cycle-it-client-hub.web.app/booked?name=[invitee_full_name]&email=[invitee_email]&phone=[Q1]
+   https://cycle-it-client-hub.web.app/booked
    ```
-   Calendly substitutes its own merge tags for the actual booking details
-   before redirecting — `[invitee_full_name]` and `[invitee_email]` are
-   standard fields, but the exact tag names/picker Calendly shows you may
-   differ from this depending on your plan and its current UI. Use
-   whatever it offers for name and email; phone only works if the event
-   type has a custom question asking for it (Calendly's default booking
-   form doesn't collect phone).
-3. That's it — no webhook, no API token. The client's browser lands on
+   (Typing merge tags like `[invitee_full_name]` directly into this field
+   gets rejected as "not a valid url" — brackets aren't valid raw URL
+   characters. Don't type them here.)
+3. Enable the separate **"Pass event details to your redirected page"**
+   toggle. Calendly then appends its own fixed query params on redirect —
+   `invitee_full_name`, `invitee_email`, `event_start_time`, and
+   `answer_1`–`answer_10` for custom questions — which is what
+   `BookedConfirmation.jsx` reads. Phone isn't collected yet (Calendly's
+   default form doesn't ask for it); if a custom "phone number" question
+   is added to the event later, wire its `answer_N` param into
+   `BookedConfirmation.jsx`.
+4. That's it — no webhook, no API token. The client's browser lands on
    `/booked`, which writes their details to Firestore (`bookings`
    collection) and shows a friendly "you're all set" page instead of
    raw query params.

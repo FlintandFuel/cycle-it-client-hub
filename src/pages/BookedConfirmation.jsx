@@ -4,18 +4,22 @@ import { createBooking } from '../lib/bookingStore'
 import logo from '../assets/cycle-it-logo-white.png'
 
 // Landing page for Calendly's booking-confirmation redirect. Configure the
-// event type's "Redirect to an external site" to point here with the
-// invitee's details as query params — see README for the exact setup.
+// event type's "Redirect to an external site" with a plain URL pointing
+// here, plus the separate "Pass event details to your redirected page"
+// toggle — Calendly then appends its own fixed query param names (not
+// merge tags typed into the URL field). See README for the exact setup.
 // Captures them into Firestore so the fitter can pick the client from a
 // list on the day instead of asking them to fill in their details again.
 export default function BookedConfirmation() {
   const [params] = useSearchParams()
   const [status, setStatus] = useState('saving')
 
-  const name = params.get('name')?.trim()
-  const email = params.get('email')?.trim()
-  const phone = params.get('phone')?.trim()
-  const appointmentTime = params.get('when')?.trim()
+  const name = params.get('invitee_full_name')?.trim()
+  const email = params.get('invitee_email')?.trim()
+  // No phone question configured on the Calendly event yet — if one's
+  // added later as a custom question, wire up its answer_N param here.
+  const phone = undefined
+  const appointmentTime = params.get('event_start_time')?.trim()
 
   useEffect(() => {
     if (!name || !email) {
