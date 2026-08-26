@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Link, useNavigate, useParams } from 'react-router-dom'
+import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
 import { onAuthStateChanged } from 'firebase/auth'
 import Field from '../components/Field'
 import SectionCard from '../components/SectionCard'
@@ -74,9 +74,18 @@ const measurementLabels = {
 export default function FitterView() {
   const online = useOnlineStatus()
   const navigate = useNavigate()
+  const location = useLocation()
   const { id: editId } = useParams()
   const isEditing = Boolean(editId)
-  const [form, setForm] = useState(emptyForm)
+  // Set when arriving from a client's fit-history "+ New fit" button — only
+  // the contact details carry over, not the old bike/measurements, since
+  // this is a genuinely new session for a returning client.
+  const prefillClient = !isEditing ? location.state?.prefillClient : undefined
+  const [form, setForm] = useState(() =>
+    prefillClient
+      ? { ...emptyForm, fitDate: todayISO(), client: { ...emptyForm.client, ...prefillClient } }
+      : emptyForm,
+  )
   const [errors, setErrors] = useState({})
   const [saving, setSaving] = useState(false)
   const [result, setResult] = useState(null)

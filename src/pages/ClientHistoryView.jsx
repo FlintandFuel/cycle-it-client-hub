@@ -71,15 +71,30 @@ export default function ClientHistoryView() {
           </Link>
 
           {group && (
-            <>
-              <h1 className="mt-3 text-2xl font-bold text-off-white sm:text-3xl">
-                {group.latestProfile.client?.name}
-              </h1>
-              <p className="mt-1 text-sm text-muted">
-                {group.latestProfile.client?.email}
-                {group.latestProfile.client?.phone && ` · ${group.latestProfile.client.phone}`}
-              </p>
-            </>
+            <div className="mt-3 flex flex-wrap items-start justify-between gap-4">
+              <div>
+                <h1 className="text-2xl font-bold text-off-white sm:text-3xl">
+                  {group.latestProfile.client?.name}
+                </h1>
+                <p className="mt-1 text-sm text-muted">
+                  {group.latestProfile.client?.email}
+                  {group.latestProfile.client?.phone && ` · ${group.latestProfile.client.phone}`}
+                </p>
+              </div>
+              <Link
+                to="/new"
+                state={{
+                  prefillClient: {
+                    name: group.latestProfile.client?.name || '',
+                    email: group.latestProfile.client?.email || '',
+                    phone: group.latestProfile.client?.phone || '',
+                  },
+                }}
+                className="shrink-0 rounded-lg bg-orange px-4 py-2.5 text-sm font-semibold text-ink transition-colors hover:bg-orange-light"
+              >
+                + New fit
+              </Link>
+            </div>
           )}
         </div>
       </header>
