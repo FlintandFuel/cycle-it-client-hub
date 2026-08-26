@@ -16,9 +16,10 @@ export default function BookedConfirmation() {
 
   const name = params.get('invitee_full_name')?.trim()
   const email = params.get('invitee_email')?.trim()
-  // No phone question configured on the Calendly event yet — if one's
-  // added later as a custom question, wire up its answer_N param here.
-  const phone = undefined
+  // Only populated if the invitee opts into "Text me a reminder" and
+  // enters a number — Calendly's native phone field, no custom question
+  // needed. Left blank otherwise, same as before.
+  const phone = params.get('text_reminder_number')?.trim()
   const appointmentTime = params.get('event_start_time')?.trim()
 
   useEffect(() => {

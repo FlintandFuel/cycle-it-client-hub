@@ -113,19 +113,20 @@ UI:
    UI) → choose **"Redirect to an external site"**.
 2. Set the redirect URL to the plain page, no query params or merge tags:
    ```
-   https://cycle-it-client-hub.web.app/booked
+   https://fit.cycleit.co.za/booked
    ```
    (Typing merge tags like `[invitee_full_name]` directly into this field
    gets rejected as "not a valid url" — brackets aren't valid raw URL
    characters. Don't type them here.)
 3. Enable the separate **"Pass event details to your redirected page"**
    toggle. Calendly then appends its own fixed query params on redirect —
-   `invitee_full_name`, `invitee_email`, `event_start_time`, and
-   `answer_1`–`answer_10` for custom questions — which is what
-   `BookedConfirmation.jsx` reads. Phone isn't collected yet (Calendly's
-   default form doesn't ask for it); if a custom "phone number" question
-   is added to the event later, wire its `answer_N` param into
-   `BookedConfirmation.jsx`.
+   `invitee_full_name`, `invitee_email`, `event_start_time`,
+   `text_reminder_number`, and `answer_1`–`answer_10` for custom
+   questions — which is what `BookedConfirmation.jsx` reads.
+   `text_reminder_number` is Calendly's native phone field: it's only
+   populated if the invitee checks "Text me a reminder" and enters a
+   number, so it's blank for bookings that skip that option. No custom
+   question needed to collect it.
 4. That's it — no webhook, no API token. The client's browser lands on
    `/booked`, which writes their details to Firestore (`bookings`
    collection) and shows a friendly "you're all set" page instead of
@@ -136,9 +137,6 @@ row (last 20) to tap instead of retyping. Reading that list requires the
 same allowlisted sign-in as `/clients` (`firestore.rules`) — an
 unauthenticated visitor to `/new` never sees or can query it, so this
 doesn't add a new place client PII leaks.
-
-If Calendly can't pass phone via a merge tag on your plan, this still
-saves re-typing name + email, which is most of the repetition.
 
 ## Data layer
 

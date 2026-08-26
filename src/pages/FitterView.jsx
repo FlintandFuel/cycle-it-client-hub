@@ -80,6 +80,7 @@ export default function FitterView() {
   const [savedOffline, setSavedOffline] = useState(false)
   const [copied, setCopied] = useState(false)
   const [bookings, setBookings] = useState([])
+  const [selectedBookingId, setSelectedBookingId] = useState(null)
 
   // Recent Calendly bookings (see bookingStore.js / BookedConfirmation.jsx)
   // only load for a signed-in, allowlisted fitter — reading the bookings
@@ -99,6 +100,7 @@ export default function FitterView() {
   )
 
   function useBooking(booking) {
+    setSelectedBookingId(booking.id)
     setForm((prev) => ({
       ...prev,
       client: { ...prev.client, name: booking.name, email: booking.email, phone: booking.phone || '' },
@@ -174,6 +176,7 @@ export default function FitterView() {
     setForm({ ...emptyForm, fitDate: todayISO() })
     setErrors({})
     setResult(null)
+    setSelectedBookingId(null)
   }
 
   if (result) {
@@ -282,17 +285,37 @@ export default function FitterView() {
         {bookings.length > 0 && (
           <SectionCard title="Recent bookings" subtitle="From Calendly — tap a client to fill in their details.">
             <div className="-mx-1 flex gap-3 overflow-x-auto px-1 pb-1">
-              {bookings.map((b) => (
-                <button
-                  key={b.id}
-                  type="button"
-                  onClick={() => useBooking(b)}
-                  className="shrink-0 rounded-lg border border-border px-4 py-3 text-left transition-colors hover:border-orange"
-                >
-                  <p className="text-sm font-medium text-off-white">{b.name}</p>
-                  <p className="text-xs text-muted">{b.email}</p>
-                </button>
-              ))}
+              {bookings.map((b) => {
+                const selected = b.id === selectedBookingId
+                return (
+                  <button
+                    key={b.id}
+                    type="button"
+                    onClick={() => useBooking(b)}
+                    className={`shrink-0 rounded-lg border px-4 py-3 text-left transition-colors ${
+                      selected ? 'border-orange bg-orange/10' : 'border-border hover:border-orange'
+                    }`}
+                  >
+                    <div className="flex items-center gap-1.5">
+                      <p className={`text-sm font-medium ${selected ? 'text-orange' : 'text-off-white'}`}>
+                        {b.name}
+                      </p>
+                      {selected && (
+                        <svg
+                          viewBox="0 0 24 24"
+                          className="h-3.5 w-3.5 shrink-0 text-orange"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2.5"
+                        >
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                        </svg>
+                      )}
+                    </div>
+                    <p className="text-xs text-muted">{b.email}</p>
+                  </button>
+                )
+              })}
             </div>
           </SectionCard>
         )}
