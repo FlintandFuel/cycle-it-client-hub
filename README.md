@@ -42,17 +42,26 @@ case — completes instantly from the local cache and syncs automatically
 once back in range. The header shows an Online/Offline badge, and the
 success screen flags it if a save happened offline.
 
-**Phase 2 / 2b / 3 — automated email (code written, not deployed).**
+**Phase 2 — automated email (code written, not deployed).**
 `functions/` has:
 - `onProfileCreated` — Firestore trigger, emails the client their profile
-  link plus a review ask via the Gmail API (Phase 2).
-- `reviewOptOut` — HTTPS endpoint for the "Don't ask me again" link
-  (Phase 2b).
-- `sendFollowUpReminders` — scheduled job (8am SAST daily) that emails
-  clients 89-92 days after their fit date with a Calendly booking link
-  (Phase 3).
+  link via the Gmail API. No review ask in this email — clients need time
+  to actually test the fit first, and review requests are handled entirely
+  by Cycle-It's own Calendly workflows (a thank-you-email ask, and another
+  at 6 months) rather than duplicated here.
+- `reviewOptOut` — HTTPS endpoint for a "Don't ask me again" opt-out on
+  `review.optedOut`. Not currently linked from anywhere (no review ask to
+  opt out of right now) but left in place in case one returns to this or
+  another channel.
 
-None of these are live yet — needs Gmail OAuth credentials and a
+Phase 2b (review ask) and Phase 3 (3-month follow-up reminder) from the
+original brief are deliberately dropped for now — Calendly's own
+thank-you and 6-month workflows already cover reviews and re-engagement.
+See git history (`functions/lib/templates.js`, `buildFollowUpEmail`;
+`functions/index.js`, `sendFollowUpReminders`) if either needs to come
+back later.
+
+`onProfileCreated` isn't live yet — needs Gmail OAuth credentials and a
 `firebase deploy` of the functions (see below).
 
 ## Run it locally
@@ -180,7 +189,9 @@ the app config (not a secret; Firebase's security model is enforced by
 
 ## Next phases
 
-- **Phase 2 / 2b / 3** — done in code (`functions/index.js`,
+- **Phase 2** (profile email) — done in code (`functions/index.js`,
   `functions/lib/`), pending the Gmail credentials + deploy above.
+- **Phase 2b / 3** — dropped for now in favor of Calendly's own workflows
+  (see "Phase 2" section above); revivable from git history if needed.
 - **Phase 4** — done (WhatsApp nudge button on the fitter success screen,
   no credentials needed).
