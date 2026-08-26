@@ -182,7 +182,7 @@ export default function ClientsDashboard() {
                       rel="noreferrer"
                       className="text-sm font-medium text-orange hover:text-orange-light"
                     >
-                      View profile →
+                      Latest profile →
                     </Link>
                   </div>
                 )
