@@ -46,6 +46,8 @@ export const demoProfile = {
     sitBoneWidth: '120mm',
     kneeAngle: '40°',
     cleatPosition: { left: '190mm', right: '188mm' },
+    shoeType: 'Shimano RC7, wide fit',
+    shoeSize: 'EU 44',
   },
 
   notes:
@@ -92,7 +94,13 @@ const demoClientB = {
     crankLength: '170mm',
   },
 
-  cleatFit: { sitBoneWidth: '112mm', kneeAngle: '38°', cleatPosition: { left: '182mm', right: '182mm' } },
+  cleatFit: {
+    sitBoneWidth: '112mm',
+    kneeAngle: '38°',
+    cleatPosition: { left: '182mm', right: '182mm' },
+    shoeType: 'Specialized Torch, standard fit',
+    shoeSize: 'EU 42',
+  },
 
   notes:
     'All bolts torqued to manufacturer spec and checked with a torque wrench. Please re-check saddle and stem bolts after your first two rides as cables and components settle. Contact us if you feel any discomfort after your first few sessions.',
@@ -127,7 +135,13 @@ const demoClientC = {
     crankLength: '177.5mm',
   },
 
-  cleatFit: { sitBoneWidth: '128mm', kneeAngle: '42°', cleatPosition: { left: '195mm', right: '197mm' } },
+  cleatFit: {
+    sitBoneWidth: '128mm',
+    kneeAngle: '42°',
+    cleatPosition: { left: '195mm', right: '197mm' },
+    shoeType: 'Bont Vaypor, narrow fit',
+    shoeSize: 'EU 45',
+  },
 
   notes:
     'All bolts torqued to manufacturer spec and checked with a torque wrench. Please re-check saddle and stem bolts after your first two rides as cables and components settle. Contact us if you feel any discomfort after your first few sessions.',

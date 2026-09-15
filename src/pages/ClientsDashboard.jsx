@@ -96,6 +96,7 @@ export default function ClientsDashboard() {
   const [profiles, setProfiles] = useState(undefined)
   const [error, setError] = useState('')
   const [sort, setSort] = useState({ key: null, dir: 'asc' })
+  const [search, setSearch] = useState('')
 
   useEffect(() => {
     listProfiles()
@@ -104,7 +105,12 @@ export default function ClientsDashboard() {
   }, [])
 
   const groups = useMemo(() => (profiles ? groupProfilesByClient(profiles) : profiles), [profiles])
-  const sortedGroups = useSortedGroups(groups, sort)
+  const filteredGroups = useMemo(() => {
+    const query = search.trim().toLowerCase()
+    if (!query || !groups) return groups
+    return groups.filter((g) => g.latestProfile.client?.name?.toLowerCase().includes(query))
+  }, [groups, search])
+  const sortedGroups = useSortedGroups(filteredGroups, sort)
 
   function handleSort(key) {
     setSort((prev) => (prev.key === key ? { key, dir: prev.dir === 'asc' ? 'desc' : 'asc' } : { key, dir: 'asc' }))
@@ -113,17 +119,39 @@ export default function ClientsDashboard() {
   return (
     <div className="min-h-screen bg-ink pb-16">
       <header className="border-b border-border">
-        <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-8 sm:px-6">
+        <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-4 px-4 py-8 sm:px-6">
           <div>
             <img src={logo} alt="Cycle-It" className="h-16 w-auto" />
             <h1 className="mt-4 text-2xl font-bold text-off-white sm:text-3xl">Clients</h1>
           </div>
-          <Link
-            to="/new"
-            className="shrink-0 rounded-lg bg-orange px-4 py-2.5 text-sm font-semibold text-ink transition-colors hover:bg-orange-light"
-          >
-            + New fit
-          </Link>
+          <div className="flex w-full items-center gap-3 sm:w-auto">
+            <div className="relative flex-1 sm:w-64 sm:flex-none">
+              <svg
+                viewBox="0 0 24 24"
+                className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+              >
+                <circle cx="11" cy="11" r="7" />
+                <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-4.3-4.3" />
+              </svg>
+              <input
+                type="search"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Search clients…"
+                aria-label="Search clients by name"
+                className="w-full rounded-lg border border-border bg-ink-raised py-2.5 pl-9 pr-3 text-sm text-off-white placeholder:text-muted focus:border-orange focus:outline-none"
+              />
+            </div>
+            <Link
+              to="/new"
+              className="shrink-0 rounded-lg bg-orange px-4 py-2.5 text-sm font-semibold text-ink transition-colors hover:bg-orange-light"
+            >
+              + New fit
+            </Link>
+          </div>
         </div>
       </header>
 
@@ -136,7 +164,11 @@ export default function ClientsDashboard() {
           <p className="text-muted">No fit profiles yet — save one from the fitter view.</p>
         )}
 
-        {groups && groups.length > 0 && (
+        {groups && groups.length > 0 && sortedGroups.length === 0 && (
+          <p className="text-muted">No clients match "{search}".</p>
+        )}
+
+        {groups && groups.length > 0 && sortedGroups.length > 0 && (
           <>
             <div className="mb-3 sm:hidden">
               <MobileSortSelect sort={sort} onChange={setSort} />

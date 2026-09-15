@@ -2,12 +2,14 @@ import { useEffect, useState } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
 import { onAuthStateChanged } from 'firebase/auth'
 import { getProfile, deleteProfile } from '../lib/profileStore'
+import { sendProfileEmail } from '../lib/sendProfileEmail'
 import { auth } from '../lib/firebase'
 import { ALLOWED_EMAILS } from '../lib/allowedEmails'
 import FitDiagram from '../components/FitDiagram'
+import Toast from '../components/Toast'
 import logo from '../assets/cycle-it-logo-white.png'
 
-// Letters match the callouts baked into bike-graphic-v6.jpg (see
+// Letters match the callouts baked into bike-graphic-v7.jpg (see
 // FitDiagram.jsx) — the designer's lettering skips F, going straight from
 // E to G.
 const measurements = [
@@ -19,6 +21,19 @@ const measurements = [
   { key: 'handlebarWidth', label: 'Handlebar width', letter: 'G' },
   { key: 'crankLength', label: 'Crank length', letter: 'H' },
 ]
+
+// TRI bikes measure reach/drop to the elbow pad on the aerobars rather
+// than to the handlebar — mirrors the same relabeling in FitterView.
+function getMeasurements(bikeType) {
+  if (bikeType !== 'TRI') return measurements
+  return measurements.map((m) =>
+    m.key === 'reach'
+      ? { ...m, label: 'Reach (saddle to elbow pad)' }
+      : m.key === 'saddleToBarDrop'
+        ? { ...m, label: 'Saddle to elbow pad drop' }
+        : m,
+  )
+}
 
 function formatDate(iso) {
   if (!iso) return ''
@@ -32,6 +47,15 @@ export default function ClientProfileView() {
   const [profile, setProfile] = useState(undefined)
   const [isFitter, setIsFitter] = useState(false)
   const [deleting, setDeleting] = useState(false)
+  const [copied, setCopied] = useState(false)
+  const [emailState, setEmailState] = useState('idle') // idle | sending | sent | error
+  const [toast, setToast] = useState(null)
+
+  useEffect(() => {
+    if (!toast) return
+    const t = setTimeout(() => setToast(null), 4000)
+    return () => clearTimeout(t)
+  }, [toast])
 
   useEffect(() => {
     let active = true
@@ -47,6 +71,33 @@ export default function ClientProfileView() {
   // never gates the page itself, since this URL is meant to open for
   // clients straight from an email link with no sign-in of their own.
   useEffect(() => onAuthStateChanged(auth, (u) => setIsFitter(!!u && ALLOWED_EMAILS.includes(u.email))), [])
+
+  // Re-share for a profile that's already been saved — e.g. the client
+  // lost the original link, or a fitter is revisiting it later and wants
+  // to resend it. Same native-share-with-copy-fallback pattern as the
+  // post-save screen in FitterView.
+  function handleShare() {
+    const url = window.location.href
+    if (navigator.share) {
+      navigator.share({ title: 'Cycle-It fit profile', text: `${profile.client.name}'s bike fit profile`, url }).catch(() => {})
+    } else {
+      navigator.clipboard?.writeText(url)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    }
+  }
+
+  async function handleSendEmail() {
+    setEmailState('sending')
+    try {
+      await sendProfileEmail(id)
+      setEmailState('sent')
+      setToast({ tone: 'success', message: `Email sent to ${profile.client.name}` })
+    } catch {
+      setEmailState('error')
+      setToast({ tone: 'error', message: 'Email failed to send — try again' })
+    }
+  }
 
   async function handleDelete() {
     if (!window.confirm(`Delete ${profile.client?.name}'s fit from ${formatDate(profile.fitDate)}? This can't be undone.`)) {
@@ -82,6 +133,11 @@ export default function ClientProfileView() {
 
   return (
     <div className="min-h-screen bg-ink pb-16">
+      {toast && (
+        <Toast tone={toast.tone} onDismiss={() => setToast(null)}>
+          {toast.message}
+        </Toast>
+      )}
       <div className="mx-auto max-w-md px-5 pt-10 sm:max-w-lg">
         {isFitter && (
           <div className="mb-4 flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
@@ -92,6 +148,27 @@ export default function ClientProfileView() {
               ← All clients
             </Link>
             <div className="flex items-center gap-4">
+              <button
+                type="button"
+                onClick={handleShare}
+                className="text-sm text-muted underline decoration-border underline-offset-4 hover:text-off-white"
+              >
+                {copied ? 'Copied' : 'Share'}
+              </button>
+              <button
+                type="button"
+                onClick={handleSendEmail}
+                disabled={emailState === 'sending'}
+                className="text-sm text-muted underline decoration-border underline-offset-4 hover:text-off-white disabled:opacity-60"
+              >
+                {emailState === 'sending'
+                  ? 'Sending…'
+                  : emailState === 'sent'
+                    ? 'Email sent'
+                    : emailState === 'error'
+                      ? 'Failed — retry'
+                      : 'Send email'}
+              </button>
               <Link
                 to={`/edit/${id}`}
                 className="text-sm text-muted underline decoration-border underline-offset-4 hover:text-off-white"
@@ -122,8 +199,15 @@ export default function ClientProfileView() {
               </p>
               <p className="text-sm text-muted">Size {profile.bike.size}</p>
             </div>
-            <div className="rounded-full border border-orange/40 bg-orange/10 px-3 py-1 text-xs font-medium text-orange">
-              {profile.bike.size}
+            <div className="flex shrink-0 flex-col items-end gap-1.5">
+              {profile.bikeType && (
+                <div className="rounded-full border border-border px-3 py-1 text-xs font-medium text-muted">
+                  {profile.bikeType}
+                </div>
+              )}
+              <div className="rounded-full border border-orange/40 bg-orange/10 px-3 py-1 text-xs font-medium text-orange">
+                {profile.bike.size}
+              </div>
             </div>
           </div>
           <div className="mt-4 flex flex-wrap gap-x-6 gap-y-1 border-t border-border pt-4 text-sm">
@@ -138,6 +222,23 @@ export default function ClientProfileView() {
           </div>
         </div>
 
+        {/* MTB details */}
+        {profile.bikeType === 'MTB' &&
+          profile.mtbDetails &&
+          Object.values(profile.mtbDetails).some(Boolean) && (
+            <section className="mt-6">
+              <h2 className="mb-3 text-sm font-semibold uppercase tracking-widest text-muted">
+                MTB Details
+              </h2>
+              <div className="overflow-hidden rounded-xl border border-border">
+                <Row label="Shock pressure — front" value={profile.mtbDetails.shockPressureFront} />
+                <Row label="Shock pressure — rear" value={profile.mtbDetails.shockPressureRear} striped />
+                <Row label="Saddle brand" value={profile.mtbDetails.saddleBrand} />
+                <Row label="Pedals" value={profile.mtbDetails.pedals} striped />
+              </div>
+            </section>
+          )}
+
         {/* Measurements */}
         <section className="mt-6">
           <h2 className="mb-3 text-sm font-semibold uppercase tracking-widest text-muted">
@@ -150,7 +251,7 @@ export default function ClientProfileView() {
               <span className="text-right">Value</span>
               <span className="text-right">Recommendation</span>
             </div>
-            {measurements.map(({ key, label, letter }, i) => (
+            {getMeasurements(profile.bikeType).map(({ key, label, letter }, i) => (
               <Row
                 key={key}
                 letter={letter}
@@ -164,10 +265,10 @@ export default function ClientProfileView() {
           </div>
         </section>
 
-        {/* Cleat fit */}
+        {/* Shoes and cleats */}
         <section className="mt-6">
           <h2 className="mb-3 text-sm font-semibold uppercase tracking-widest text-muted">
-            Cleat fit
+            Shoes and Cleats
           </h2>
           <div className="overflow-hidden rounded-xl border border-border">
             <Row label="Sit-bone width" value={profile.cleatFit?.sitBoneWidth} />
@@ -186,17 +287,33 @@ export default function ClientProfileView() {
               </span>
             </div>
           </div>
+
+          <p className="mb-3 mt-5 text-sm font-semibold uppercase tracking-widest text-muted">
+            Shoe Recommendations
+          </p>
+          <div className="overflow-hidden rounded-xl border border-border">
+            <Row label="Shoe name" value={profile.cleatFit?.shoeType} />
+            <Row label="Size" value={profile.cleatFit?.shoeSize} striped />
+          </div>
         </section>
 
         {/* Notes */}
-        {profile.notes && (
+        {(profile.notes || profile.pressureMapping) && (
           <section className="mt-6">
             <h2 className="mb-3 text-sm font-semibold uppercase tracking-widest text-muted">
               Notes
             </h2>
-            <div className="rounded-xl border border-border bg-ink-raised p-5">
-              <p className="text-sm leading-relaxed text-off-white/90">{profile.notes}</p>
-            </div>
+            {profile.pressureMapping && (
+              <div className="mb-3 flex items-center justify-between rounded-xl border border-border bg-ink-raised px-4 py-3">
+                <span className="text-sm text-muted">Pressure mapping</span>
+                <span className="text-sm font-medium text-off-white">{profile.pressureMapping}</span>
+              </div>
+            )}
+            {profile.notes && (
+              <div className="rounded-xl border border-border bg-ink-raised p-5">
+                <p className="text-sm leading-relaxed text-off-white/90">{profile.notes}</p>
+              </div>
+            )}
           </section>
         )}
 

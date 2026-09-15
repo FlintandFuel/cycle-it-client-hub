@@ -1,43 +1,27 @@
-const { google } = require('googleapis');
+const nodemailer = require('nodemailer');
 
-// Sends mail via the Gmail API, authenticated as Ruan's Google Workspace
-// account through an OAuth2 refresh token (not a service account — Gmail
-// send-as-user requires a real mailbox). Credentials come from environment
-// config; see ../.env.example for the variables to set.
-function gmailClient() {
-  const oauth2Client = new google.auth.OAuth2(
-    process.env.GMAIL_CLIENT_ID,
-    process.env.GMAIL_CLIENT_SECRET,
-  );
-  oauth2Client.setCredentials({ refresh_token: process.env.GMAIL_REFRESH_TOKEN });
-  return google.gmail({ version: 'v1', auth: oauth2Client });
-}
-
-function encodeMessage({ to, from, subject, html }) {
-  const message = [
-    `From: ${from}`,
-    `To: ${to}`,
-    'Content-Type: text/html; charset=utf-8',
-    'MIME-Version: 1.0',
-    `Subject: =?utf-8?B?${Buffer.from(subject).toString('base64')}?=`,
-    '',
-    html,
-  ].join('\r\n')
-
-  return Buffer.from(message)
-    .toString('base64')
-    .replace(/\+/g, '-')
-    .replace(/\//g, '_')
-    .replace(/=+$/, '')
+// Sends mail via Gmail's SMTP relay, authenticated as Ruan's Gmail account
+// with an App Password (myaccount.google.com/apppasswords) rather than
+// OAuth2 — this is a personal Gmail account, not Workspace, so an OAuth
+// refresh token would expire every 7 days without going through Google's
+// full app-verification review. App passwords don't expire on their own.
+function transporter() {
+  return nodemailer.createTransport({
+    service: 'gmail',
+    auth: {
+      user: process.env.GMAIL_SENDER_EMAIL,
+      pass: process.env.GMAIL_APP_PASSWORD,
+    },
+  });
 }
 
 async function sendMail({ to, subject, html }) {
-  const from = process.env.GMAIL_SENDER_EMAIL
-  const gmail = gmailClient()
-  await gmail.users.messages.send({
-    userId: 'me',
-    requestBody: { raw: encodeMessage({ to, from, subject, html }) },
-  })
+  await transporter().sendMail({
+    from: process.env.GMAIL_SENDER_EMAIL,
+    to,
+    subject,
+    html,
+  });
 }
 
-module.exports = { sendMail }
+module.exports = { sendMail };

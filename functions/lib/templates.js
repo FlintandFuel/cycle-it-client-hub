@@ -24,14 +24,20 @@ function layout(bodyHtml) {
   </div>`
 }
 
+// background-color (not just the background shorthand) plus a matching
+// border is deliberate belt-and-braces: some mail clients (Outlook
+// desktop in particular) drop background styling on <a> tags entirely and
+// fall back to their own default link color, which reads as an
+// unbranded/untrustworthy red or blue — the border keeps an orange edge
+// visible even if the fill gets dropped.
 function button(href, label, color = ORANGE) {
-  return `<a href="${href}" style="display:inline-block;background:${color};color:#0B0B0C;font-weight:600;font-size:15px;text-decoration:none;padding:14px 24px;border-radius:8px;">${label}</a>`
+  return `<a href="${href}" style="display:inline-block;background:${color};background-color:${color};border:2px solid ${color};color:#0B0B0C;font-weight:600;font-size:15px;text-decoration:none;padding:12px 24px;border-radius:8px;">${label}</a>`
 }
 
 // Review ask deliberately left out here — clients need time to actually
 // test the fit before it makes sense to ask. Review requests for now live
 // entirely in Calendly's own workflows.
-function buildProfileEmail({ profile, profileUrl }) {
+function buildProfileEmail({ profile, profileUrl, shopPhone }) {
   const subject = `${profile.client.name}, your Cycle-It fit profile is ready`
 
   const html = layout(`
@@ -40,7 +46,13 @@ function buildProfileEmail({ profile, profileUrl }) {
       Hi ${profile.client.name}, thanks for coming in today. Your bike fit measurements
       from your session with ${profile.fitSpecialist} are saved and ready to view any time.
     </p>
-    <p style="margin:0;">${button(profileUrl, 'View your fit profile')}</p>
+    <p style="margin:0 0 28px;">${button(profileUrl, 'View your fit profile')}</p>
+    <p style="margin:0;padding-top:20px;border-top:1px solid #E7E7E5;font-size:14px;line-height:1.6;color:${INK};">
+      Any questions about your fit, just reply to this email.<br/><br/>
+      <strong>Ruan Smit</strong><br/>
+      ${shopPhone ? `${shopPhone}<br/>` : ''}
+      <a href="https://cycleit.co.za" style="color:${ORANGE};text-decoration:none;">cycleit.co.za</a>
+    </p>
   `)
 
   return { subject, html }

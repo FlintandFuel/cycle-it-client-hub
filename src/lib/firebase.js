@@ -1,6 +1,7 @@
 import { initializeApp } from 'firebase/app'
 import { initializeFirestore, persistentLocalCache, persistentSingleTabManager } from 'firebase/firestore'
 import { getAuth, GoogleAuthProvider } from 'firebase/auth'
+import { getFunctions } from 'firebase/functions'
 
 // These are public client identifiers, not secrets — Firebase's security
 // model relies on Firestore rules (see ../../firestore.rules), not on
@@ -27,3 +28,7 @@ export const db = initializeFirestore(app, {
 })
 export const auth = getAuth(app)
 export const googleProvider = new GoogleAuthProvider()
+// Region must match where functions/index.js deploys to (europe-west1,
+// closest to South Africa) — calling the default us-central1 endpoint
+// would just 404.
+export const functions = getFunctions(app, 'europe-west1')

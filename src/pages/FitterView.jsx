@@ -3,7 +3,9 @@ import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
 import { onAuthStateChanged } from 'firebase/auth'
 import Field from '../components/Field'
 import SectionCard from '../components/SectionCard'
+import Toast from '../components/Toast'
 import { createProfile, getProfile, updateProfile } from '../lib/profileStore'
+import { sendProfileEmail } from '../lib/sendProfileEmail'
 import { listRecentBookings } from '../lib/bookingStore'
 import { DEFAULT_NOTES } from '../lib/demoData'
 import { useOnlineStatus } from '../lib/useOnlineStatus'
@@ -30,10 +32,16 @@ function whatsAppNudgeUrl(client, url) {
   return `https://wa.me/${toWhatsAppNumber(client.phone)}?text=${encodeURIComponent(message)}`
 }
 
+const BIKE_TYPES = ['Road', 'Gravel', 'MTB', 'TRI']
+
 const emptyForm = {
   fitDate: todayISO(),
   fitSpecialist: 'Ruan Smit',
+  bikeType: 'Road',
   bike: { make: '', model: '', size: '' },
+  // Only relevant when bikeType is 'MTB' — suspension setup and component
+  // choices that don't apply to a fixed-fork road/gravel/tri bike.
+  mtbDetails: { shockPressureFront: '', shockPressureRear: '', saddleBrand: '', pedals: '' },
   measurements: {
     saddleHeight: '',
     reach: '',
@@ -56,7 +64,10 @@ const emptyForm = {
     sitBoneWidth: '',
     kneeAngle: '',
     cleatPosition: { left: '', right: '' },
+    shoeType: '',
+    shoeSize: '',
   },
+  pressureMapping: 'No',
   notes: DEFAULT_NOTES,
   client: { name: '', email: '', phone: '', consentGiven: false },
 }
@@ -69,6 +80,19 @@ const measurementLabels = {
   saddleToBarDrop: 'Saddle to bar drop',
   handlebarWidth: 'Handlebar width',
   crankLength: 'Crank length',
+}
+
+// TRI bikes measure reach/drop to the elbow pad on the aerobars rather
+// than to the handlebar — same two fields, different wording so the form
+// (and later the client-facing profile) matches how a tri fit is actually
+// talked about.
+function getMeasurementLabels(bikeType) {
+  if (bikeType !== 'TRI') return measurementLabels
+  return {
+    ...measurementLabels,
+    reach: 'Reach (saddle to elbow pad)',
+    saddleToBarDrop: 'Saddle to elbow pad drop',
+  }
 }
 
 export default function FitterView() {
@@ -91,6 +115,14 @@ export default function FitterView() {
   const [result, setResult] = useState(null)
   const [savedOffline, setSavedOffline] = useState(false)
   const [copied, setCopied] = useState(false)
+  const [emailState, setEmailState] = useState('idle') // idle | sending | sent | error
+  const [toast, setToast] = useState(null)
+
+  useEffect(() => {
+    if (!toast) return
+    const t = setTimeout(() => setToast(null), 4000)
+    return () => clearTimeout(t)
+  }, [toast])
   const [bookings, setBookings] = useState([])
   const [selectedBookingId, setSelectedBookingId] = useState(null)
   const [editLoadStatus, setEditLoadStatus] = useState(isEditing ? 'loading' : 'ready')
@@ -122,7 +154,16 @@ export default function FitterView() {
     getProfile(editId).then((p) => {
       if (!active) return
       if (p) {
-        setForm({ ...emptyForm, ...p })
+        // Deep-merge cleatFit specifically: older profiles saved before the
+        // shoe-recommendation fields existed won't have shoeType/shoeSize,
+        // and a shallow spread would leave those inputs `undefined` instead
+        // of the empty string a controlled input needs.
+        setForm({
+          ...emptyForm,
+          ...p,
+          cleatFit: { ...emptyForm.cleatFit, ...p.cleatFit },
+          mtbDetails: { ...emptyForm.mtbDetails, ...p.mtbDetails },
+        })
         setEditLoadStatus('ready')
       } else {
         setEditLoadStatus('not-found')
@@ -215,6 +256,22 @@ export default function FitterView() {
     }
   }
 
+  // Auto-send (onProfileCreated) already fires on save — this is for
+  // resending on demand: if that first send failed (bad credentials, a
+  // typo'd email that got corrected on the client details), or the client
+  // just wants it in their inbox again.
+  async function handleSendEmail() {
+    setEmailState('sending')
+    try {
+      await sendProfileEmail(result.id)
+      setEmailState('sent')
+      setToast({ tone: 'success', message: `Email sent to ${form.client.name}` })
+    } catch {
+      setEmailState('error')
+      setToast({ tone: 'error', message: 'Email failed to send — try again' })
+    }
+  }
+
   function handleStartNewFit() {
     setForm({ ...emptyForm, fitDate: todayISO() })
     setErrors({})
@@ -251,6 +308,11 @@ export default function FitterView() {
     const url = `${window.location.origin}/p/${result.id}`
     return (
       <div className="min-h-screen bg-ink flex items-center justify-center px-4 py-10">
+        {toast && (
+          <Toast tone={toast.tone} onDismiss={() => setToast(null)}>
+            {toast.message}
+          </Toast>
+        )}
         <div className="w-full max-w-lg rounded-xl border border-border bg-ink-raised p-8 text-center">
           <div className="mx-auto mb-5 flex h-12 w-12 items-center justify-center rounded-full bg-orange/15">
             <svg viewBox="0 0 24 24" className="h-6 w-6 text-orange" fill="none" stroke="currentColor" strokeWidth="2">
@@ -296,6 +358,23 @@ export default function FitterView() {
               <path strokeLinecap="round" strokeLinejoin="round" d="M12 5v9m0-9 3.5 3.5M12 5 8.5 8.5M5 14v3.5A1.5 1.5 0 0 0 6.5 19h11a1.5 1.5 0 0 0 1.5-1.5V14" />
             </svg>
             Share profile
+          </button>
+
+          <button
+            onClick={handleSendEmail}
+            disabled={emailState === 'sending'}
+            className="mt-3 flex w-full items-center justify-center gap-2 rounded-lg border border-border py-3.5 text-[15px] font-medium text-off-white transition-colors hover:border-orange disabled:opacity-60"
+          >
+            <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M3 7l9 6 9-6M5 5h14a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2Z" />
+            </svg>
+            {emailState === 'sending'
+              ? 'Sending…'
+              : emailState === 'sent'
+                ? 'Email sent'
+                : emailState === 'error'
+                  ? 'Failed — try again'
+                  : 'Send email'}
           </button>
 
           <a
@@ -409,6 +488,25 @@ export default function FitterView() {
         </SectionCard>
 
         <SectionCard step="01" title="Bike details">
+          <div className="mb-5">
+            <span className="mb-1.5 block text-sm font-medium text-muted">Bike type</span>
+            <div className="flex flex-wrap gap-2">
+              {BIKE_TYPES.map((type) => (
+                <button
+                  key={type}
+                  type="button"
+                  onClick={() => setField(null, 'bikeType', type)}
+                  className={`rounded-lg border px-5 py-2.5 text-sm font-medium transition-colors ${
+                    form.bikeType === type
+                      ? 'border-orange bg-orange/10 text-orange'
+                      : 'border-border text-off-white hover:border-orange'
+                  }`}
+                >
+                  {type}
+                </button>
+              ))}
+            </div>
+          </div>
           <div className="grid grid-cols-1 gap-5 sm:grid-cols-3">
             <Field
               label="Make"
@@ -438,6 +536,44 @@ export default function FitterView() {
               placeholder="54cm"
             />
           </div>
+
+          {form.bikeType === 'MTB' && (
+            <div className="mt-6 border-t border-border pt-5">
+              <p className="mb-4 text-xs font-semibold uppercase tracking-widest text-muted">
+                MTB details
+              </p>
+              <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+                <Field
+                  label="Shock pressure — front"
+                  name="mtbDetails.shockPressureFront"
+                  value={form.mtbDetails.shockPressureFront}
+                  onChange={(e) => setField('mtbDetails', 'shockPressureFront', e.target.value)}
+                  placeholder="e.g. 70 psi"
+                />
+                <Field
+                  label="Shock pressure — rear"
+                  name="mtbDetails.shockPressureRear"
+                  value={form.mtbDetails.shockPressureRear}
+                  onChange={(e) => setField('mtbDetails', 'shockPressureRear', e.target.value)}
+                  placeholder="e.g. 150 psi"
+                />
+                <Field
+                  label="Saddle brand"
+                  name="mtbDetails.saddleBrand"
+                  value={form.mtbDetails.saddleBrand}
+                  onChange={(e) => setField('mtbDetails', 'saddleBrand', e.target.value)}
+                  placeholder="e.g. Specialized Power"
+                />
+                <Field
+                  label="Pedals"
+                  name="mtbDetails.pedals"
+                  value={form.mtbDetails.pedals}
+                  onChange={(e) => setField('mtbDetails', 'pedals', e.target.value)}
+                  placeholder="e.g. Shimano"
+                />
+              </div>
+            </div>
+          )}
         </SectionCard>
 
         <SectionCard
@@ -446,7 +582,7 @@ export default function FitterView() {
           subtitle="Recommendations show alongside each measurement on the client's fit profile."
         >
           <div className="space-y-5">
-            {Object.entries(measurementLabels).map(([key, label]) => (
+            {Object.entries(getMeasurementLabels(form.bikeType)).map(([key, label]) => (
               <div key={key} className="grid grid-cols-1 gap-3 rounded-lg border border-border p-4 sm:grid-cols-2">
                 <Field
                   label={label}
@@ -467,7 +603,7 @@ export default function FitterView() {
           </div>
         </SectionCard>
 
-        <SectionCard step="03" title="Cleat fit">
+        <SectionCard step="03" title="Shoes and Cleats">
           <div className="grid grid-cols-1 gap-5 sm:grid-cols-3">
             <Field
               label="Sit-bone width"
@@ -500,9 +636,50 @@ export default function FitterView() {
               placeholder="e.g. 190mm"
             />
           </div>
+
+          <div className="mt-6 border-t border-border pt-5">
+            <p className="mb-4 text-xs font-semibold uppercase tracking-widest text-muted">
+              Shoe recommendations
+            </p>
+            <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+              <Field
+                label="Shoe name"
+                name="cleatFit.shoeType"
+                value={form.cleatFit.shoeType}
+                onChange={(e) => setField('cleatFit', 'shoeType', e.target.value)}
+                placeholder="e.g. Lake MTB 1023"
+              />
+              <Field
+                label="Size"
+                name="cleatFit.shoeSize"
+                value={form.cleatFit.shoeSize}
+                onChange={(e) => setField('cleatFit', 'shoeSize', e.target.value)}
+                placeholder="e.g. 44 wide"
+              />
+            </div>
+          </div>
         </SectionCard>
 
         <SectionCard step="04" title="Notes">
+          <div className="mb-5">
+            <span className="mb-1.5 block text-sm font-medium text-muted">Pressure mapping</span>
+            <div className="flex gap-2">
+              {['Yes', 'No'].map((option) => (
+                <button
+                  key={option}
+                  type="button"
+                  onClick={() => setField(null, 'pressureMapping', option)}
+                  className={`rounded-lg border px-5 py-2.5 text-sm font-medium transition-colors ${
+                    form.pressureMapping === option
+                      ? 'border-orange bg-orange/10 text-orange'
+                      : 'border-border text-off-white hover:border-orange'
+                  }`}
+                >
+                  {option}
+                </button>
+              ))}
+            </div>
+          </div>
           <Field
             label="Fitment notes"
             name="notes"
