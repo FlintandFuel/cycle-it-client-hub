@@ -121,7 +121,9 @@ export default function ClientsDashboard() {
       <header className="border-b border-border">
         <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-4 px-4 py-8 sm:px-6">
           <div>
-            <img src={logo} alt="Cycle-It" className="h-16 w-auto" />
+            <Link to="/new">
+              <img src={logo} alt="Cycle-It" className="h-16 w-auto" />
+            </Link>
             <h1 className="mt-4 text-2xl font-bold text-off-white sm:text-3xl">Clients</h1>
           </div>
           <div className="flex w-full items-center gap-3 sm:w-auto">
