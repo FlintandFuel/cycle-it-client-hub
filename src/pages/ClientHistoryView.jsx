@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { listProfiles, deleteProfile } from '../lib/profileStore'
 import { groupProfilesByClient, findClientGroup } from '../lib/groupClients'
+import { formatRand } from '../lib/formatRand'
 import logo from '../assets/cycle-it-logo-white.png'
 
 function formatDate(iso) {
@@ -38,6 +39,11 @@ export default function ClientHistoryView() {
   }, [])
 
   const group = profiles ? findClientGroup(groupProfilesByClient(profiles), profileId) : undefined
+
+  // Every component fitted across this client's sessions, newest first.
+  const purchases = (group?.profiles || [])
+    .flatMap((p) => (p.components || []).map((c) => ({ ...c, profileId: p.id, fitDate: p.fitDate })))
+    .sort((a, b) => (b.fitDate || '').localeCompare(a.fitDate || ''))
 
   // If the deleted session is the one anchoring this URL, redirect to a
   // sibling session (or back to /clients if that was the last one) —
@@ -122,6 +128,12 @@ export default function ClientHistoryView() {
                   {p.bike?.make} {p.bike?.model}
                 </p>
                 <div className="flex flex-wrap gap-1.5">
+                  {p.newBikeFit === 'Yes' && <Badge tone="on">New bike fit</Badge>}
+                  {p.components?.length > 0 && (
+                    <Badge>
+                      {p.components.length} component{p.components.length === 1 ? '' : 's'}
+                    </Badge>
+                  )}
                   {p.emailStatus?.profileEmailSent && <Badge tone="on">Email sent</Badge>}
                   {p.review?.optedOut && <Badge>Review opted out</Badge>}
                 </div>
@@ -150,6 +162,38 @@ export default function ClientHistoryView() {
               </div>
             ))}
           </div>
+        )}
+
+        {purchases.length > 0 && (
+          <section className="mt-8">
+            <h2 className="mb-3 text-sm font-semibold uppercase tracking-widest text-muted">
+              Components purchased
+            </h2>
+            <div className="overflow-hidden rounded-xl border border-border">
+              {purchases.map((c, i) => (
+                <div
+                  key={`${c.profileId}-${i}`}
+                  className={`flex items-start justify-between gap-4 px-5 py-3 text-sm ${
+                    i % 2 === 1 ? 'bg-ink-raised' : 'bg-ink'
+                  }`}
+                >
+                  <div className="min-w-0">
+                    <p className="text-off-white">
+                      {c.brand} — {c.description}
+                    </p>
+                    <p className="mt-0.5 text-xs text-muted">{formatDate(c.fitDate)}</p>
+                  </div>
+                  <span className="shrink-0 text-off-white">{formatRand(c.price)}</span>
+                </div>
+              ))}
+              <div className="flex items-center justify-between border-t border-border bg-ink-raised px-5 py-3">
+                <span className="text-sm text-muted">Total across all fits</span>
+                <span className="text-sm font-semibold text-orange">
+                  {formatRand(purchases.reduce((sum, c) => sum + (Number(c.price) || 0), 0))}
+                </span>
+              </div>
+            </div>
+          </section>
         )}
       </div>
     </div>

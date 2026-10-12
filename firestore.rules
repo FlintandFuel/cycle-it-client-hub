@@ -43,5 +43,20 @@ service cloud.firestore {
       allow update: if false;
       allow delete: if false;
     }
+
+    // Monthly Dunkeld Cycles billing invoices — generated and emailed by
+    // functions/index.js (Cloud Functions run as admin and bypass these
+    // rules entirely; this just documents/blocks any client-side attempt).
+    // `get` stays open the same way a profile's does, so the "View online"
+    // link in the invoice email works with no sign-in.
+    match /invoices/{invoiceId} {
+      allow get: if true;
+      allow list: if request.auth != null &&
+        request.auth.token.email in ['ruan.photos26@gmail.com', 'cvaniek@gmail.com'];
+
+      allow create: if false;
+      allow update: if false;
+      allow delete: if false;
+    }
   }
 }

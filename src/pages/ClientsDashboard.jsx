@@ -148,6 +148,12 @@ export default function ClientsDashboard() {
               />
             </div>
             <Link
+              to="/invoices"
+              className="shrink-0 text-sm text-muted underline decoration-border underline-offset-4 hover:text-off-white"
+            >
+              Invoices
+            </Link>
+            <Link
               to="/new"
               className="shrink-0 rounded-lg bg-orange px-4 py-2.5 text-sm font-semibold text-ink transition-colors hover:bg-orange-light"
             >
@@ -217,6 +223,7 @@ export default function ClientsDashboard() {
                     </p>
                     <p className="text-sm text-muted">{formatDate(p.fitDate)}</p>
                     <div className="flex flex-wrap gap-1.5">
+                      {p.newBikeFit === 'Yes' && <Badge tone="on">New bike fit</Badge>}
                       {p.emailStatus?.profileEmailSent && <Badge tone="on">Email sent</Badge>}
                       {p.review?.optedOut && <Badge>Review opted out</Badge>}
                     </div>

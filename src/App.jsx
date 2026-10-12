@@ -3,6 +3,8 @@ import FitterView from './pages/FitterView'
 import ClientProfileView from './pages/ClientProfileView'
 import ClientsDashboard from './pages/ClientsDashboard'
 import ClientHistoryView from './pages/ClientHistoryView'
+import InvoiceView from './pages/InvoiceView'
+import InvoicesDashboard from './pages/InvoicesDashboard'
 import BookedConfirmation from './pages/BookedConfirmation'
 import AuthGate from './components/AuthGate'
 
@@ -20,6 +22,7 @@ export default function App() {
         }
       />
       <Route path="/p/:id" element={<ClientProfileView />} />
+      <Route path="/invoice/:id" element={<InvoiceView />} />
       <Route path="/booked" element={<BookedConfirmation />} />
       <Route
         path="/clients"
@@ -34,6 +37,14 @@ export default function App() {
         element={
           <AuthGate>
             <ClientHistoryView />
+          </AuthGate>
+        }
+      />
+      <Route
+        path="/invoices"
+        element={
+          <AuthGate>
+            <InvoicesDashboard />
           </AuthGate>
         }
       />

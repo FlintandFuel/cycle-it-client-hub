@@ -7,6 +7,14 @@
         { "fieldPath": "followUp.sent", "order": "ASCENDING" },
         { "fieldPath": "fitDate", "order": "ASCENDING" }
       ]
+    },
+    {
+      "collectionGroup": "profiles",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "newBikeFit", "order": "ASCENDING" },
+        { "fieldPath": "fitDate", "order": "ASCENDING" }
+      ]
     }
   ],
   "fieldOverrides": []

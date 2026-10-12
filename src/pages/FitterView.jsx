@@ -37,11 +37,23 @@ const BIKE_TYPES = ['Road', 'Gravel', 'MTB', 'TRI']
 const emptyForm = {
   fitDate: todayISO(),
   fitSpecialist: 'Ruan Smit',
+  // Drives the Dunkeld Cycles monthly billing invoice (functions/index.js
+  // sendMonthlyInvoice) — only fits tagged 'Yes' here get itemised on it.
+  newBikeFit: 'No',
   bikeType: 'Road',
   bike: { make: '', model: '', size: '' },
   // Only relevant when bikeType is 'MTB' — suspension setup and component
   // choices that don't apply to a fixed-fork road/gravel/tri bike.
   mtbDetails: { shockPressureFront: '', shockPressureRear: '', saddleBrand: '', pedals: '' },
+  measurementsBefore: {
+    saddleHeight: '',
+    reach: '',
+    saddleSetback: '',
+    stemLength: '',
+    saddleToBarDrop: '',
+    handlebarWidth: '',
+    crankLength: '',
+  },
   measurements: {
     saddleHeight: '',
     reach: '',
@@ -62,12 +74,18 @@ const emptyForm = {
   },
   cleatFit: {
     sitBoneWidth: '',
+    kneeAngleBefore: '',
     kneeAngle: '',
+    cleatPositionBefore: { left: '', right: '' },
     cleatPosition: { left: '', right: '' },
     shoeType: '',
     shoeSize: '',
   },
   pressureMapping: 'No',
+  // Parts fitted during the session, passed on to Dunkeld Cycles in the
+  // monthly invoice (functions/index.js getOrCreateInvoice), and shown on
+  // the client's profile and fit history.
+  components: [],
   notes: DEFAULT_NOTES,
   client: { name: '', email: '', phone: '', consentGiven: false },
 }
@@ -95,21 +113,80 @@ function getMeasurementLabels(bikeType) {
   }
 }
 
+// Autosave draft, keyed per-form so a new fit and an in-progress edit don't
+// clobber each other. sessionStorage (not localStorage) is deliberate — it
+// survives the accidental-refresh case this is built for, but clears itself
+// when the tab closes so a fitter opening "New bike fit" days later never
+// gets an old client's half-typed data back.
+function draftKey(editId) {
+  return editId ? `cycleit:fitDraft:edit:${editId}` : 'cycleit:fitDraft:new'
+}
+
+function loadDraft(key) {
+  try {
+    const saved = sessionStorage.getItem(key)
+    return saved ? JSON.parse(saved) : null
+  } catch {
+    return null
+  }
+}
+
+function clearDraft(key) {
+  try {
+    sessionStorage.removeItem(key)
+  } catch {
+    // ignore
+  }
+}
+
+const emptyComponent = { brand: '', description: '', price: '' }
+
+// Accepts "1200", "1 200", "R1,200.50" and "1200,50" — the fitter types
+// these on a phone, so be forgiving rather than rejecting South African
+// decimal commas. Returns null when it isn't a usable amount.
+function parsePrice(raw) {
+  let s = String(raw ?? '').replace(/[R\s]/gi, '')
+  if (s.includes(',') && s.includes('.')) s = s.replace(/,/g, '')
+  else if (/,\d{1,2}$/.test(s)) s = s.replace(',', '.')
+  else s = s.replace(/,/g, '')
+  if (!/^\d+(\.\d+)?$/.test(s)) return null
+  return Math.round(Number(s) * 100) / 100
+}
+
+// Fully blank rows are dropped (the fitter tapped "Add" and changed their
+// mind); anything else is trimmed and its price stored as a number so the
+// monthly invoice can total it.
+function cleanComponents(components) {
+  return (components || [])
+    .filter((c) => c.brand?.trim() || c.description?.trim() || String(c.price ?? '').trim())
+    .map((c) => ({
+      brand: (c.brand || '').trim(),
+      description: (c.description || '').trim(),
+      price: parsePrice(c.price),
+    }))
+}
+
 export default function FitterView() {
   const online = useOnlineStatus()
   const navigate = useNavigate()
   const location = useLocation()
   const { id: editId } = useParams()
   const isEditing = Boolean(editId)
+  const draftKeyValue = draftKey(editId)
   // Set when arriving from a client's fit-history "+ New fit" button — only
   // the contact details carry over, not the old bike/measurements, since
   // this is a genuinely new session for a returning client.
   const prefillClient = !isEditing ? location.state?.prefillClient : undefined
-  const [form, setForm] = useState(() =>
-    prefillClient
-      ? { ...emptyForm, fitDate: todayISO(), client: { ...emptyForm.client, ...prefillClient } }
-      : emptyForm,
-  )
+  const [form, setForm] = useState(() => {
+    if (prefillClient) {
+      return { ...emptyForm, fitDate: todayISO(), client: { ...emptyForm.client, ...prefillClient } }
+    }
+    if (!isEditing) {
+      const draft = loadDraft(draftKeyValue)
+      if (draft) return draft
+    }
+    return emptyForm
+  })
   const [errors, setErrors] = useState({})
   const [saving, setSaving] = useState(false)
   const [result, setResult] = useState(null)
@@ -150,6 +227,17 @@ export default function FitterView() {
   // creating a new document.
   useEffect(() => {
     if (!isEditing) return
+    // A draft for this specific profile means an edit session got
+    // interrupted (refresh, closed tab) before saving — resume it instead
+    // of re-fetching the last-saved version and silently discarding those
+    // changes. Saving (or navigating away after saving) clears the draft,
+    // so this only ever fires for genuinely unsaved edits.
+    const draft = loadDraft(draftKeyValue)
+    if (draft) {
+      setForm(draft)
+      setEditLoadStatus('ready')
+      return
+    }
     let active = true
     getProfile(editId).then((p) => {
       if (!active) return
@@ -172,7 +260,18 @@ export default function FitterView() {
     return () => {
       active = false
     }
-  }, [isEditing, editId])
+  }, [isEditing, editId, draftKeyValue])
+
+  // Persist every change so an accidental refresh (or crash/lost signal)
+  // doesn't lose the session — see draftKey() above for why sessionStorage.
+  useEffect(() => {
+    if (editLoadStatus !== 'ready' || result) return
+    try {
+      sessionStorage.setItem(draftKeyValue, JSON.stringify(form))
+    } catch {
+      // storage full or unavailable — autosave is a nicety, not critical
+    }
+  }, [form, editLoadStatus, result, draftKeyValue])
 
   function useBooking(booking) {
     setSelectedBookingId(booking.id)
@@ -190,12 +289,29 @@ export default function FitterView() {
     )
   }
 
-  function setCleatPosition(side, value) {
+  function setComponent(index, key, value) {
+    setForm((prev) => ({
+      ...prev,
+      components: (prev.components || []).map((c, i) => (i === index ? { ...c, [key]: value } : c)),
+    }))
+  }
+
+  function addComponent() {
+    setForm((prev) => ({ ...prev, components: [...(prev.components || []), { ...emptyComponent }] }))
+  }
+
+  function removeComponent(index) {
+    setForm((prev) => ({ ...prev, components: (prev.components || []).filter((_, i) => i !== index) }))
+  }
+
+  // `field` is 'cleatPosition' or 'cleatPositionBefore' — same shape, so
+  // one setter handles both the before and after inputs.
+  function setCleatPosition(field, side, value) {
     setForm((prev) => ({
       ...prev,
       cleatFit: {
         ...prev.cleatFit,
-        cleatPosition: { ...prev.cleatFit.cleatPosition, [side]: value },
+        [field]: { ...prev.cleatFit[field], [side]: value },
       },
     }))
   }
@@ -210,6 +326,10 @@ export default function FitterView() {
     else if (!/^\S+@\S+\.\S+$/.test(form.client.email)) next.clientEmail = 'Enter a valid email'
     if (!form.client.phone.trim()) next.clientPhone = 'Required'
     if (!form.client.consentGiven) next.consent = 'Consent is required before saving'
+    const badComponent = cleanComponents(form.components).some(
+      (c) => !c.brand || !c.description || c.price === null,
+    )
+    if (badComponent) next.components = 'Each component needs a brand, description and a valid price'
     setErrors(next)
     return Object.keys(next).length === 0
   }
@@ -217,10 +337,12 @@ export default function FitterView() {
   async function handleSubmit(e) {
     e.preventDefault()
     if (!validate()) return
+    const payload = { ...form, components: cleanComponents(form.components) }
     setSaving(true)
     if (isEditing) {
       try {
-        await updateProfile(editId, form)
+        await updateProfile(editId, payload)
+        clearDraft(draftKeyValue)
         navigate(`/p/${editId}`)
       } finally {
         setSaving(false)
@@ -229,7 +351,8 @@ export default function FitterView() {
     }
     setSavedOffline(!online)
     try {
-      const profile = await createProfile(form)
+      const profile = await createProfile(payload)
+      clearDraft(draftKeyValue)
       setResult(profile)
     } finally {
       setSaving(false)
@@ -485,6 +608,28 @@ export default function FitterView() {
               onChange={(e) => setField(null, 'fitSpecialist', e.target.value)}
             />
           </div>
+          <div className="mt-5">
+            <span className="mb-1.5 block text-sm font-medium text-muted">New bike fit</span>
+            <div className="flex gap-2">
+              {['Yes', 'No'].map((option) => (
+                <button
+                  key={option}
+                  type="button"
+                  onClick={() => setField(null, 'newBikeFit', option)}
+                  className={`rounded-lg border px-5 py-2.5 text-sm font-medium transition-colors ${
+                    form.newBikeFit === option
+                      ? 'border-orange bg-orange/10 text-orange'
+                      : 'border-border text-off-white hover:border-orange'
+                  }`}
+                >
+                  {option}
+                </button>
+              ))}
+            </div>
+            <p className="mt-1.5 text-xs text-muted">
+              Billed to Dunkeld Cycles — shows up on their monthly invoice.
+            </p>
+          </div>
         </SectionCard>
 
         <SectionCard step="01" title="Bike details">
@@ -583,58 +728,103 @@ export default function FitterView() {
         >
           <div className="space-y-5">
             {Object.entries(getMeasurementLabels(form.bikeType)).map(([key, label]) => (
-              <div key={key} className="grid grid-cols-1 gap-3 rounded-lg border border-border p-4 sm:grid-cols-2">
-                <Field
-                  label={label}
-                  name={`measurements.${key}`}
-                  value={form.measurements[key]}
-                  onChange={(e) => setField('measurements', key, e.target.value)}
-                  placeholder="e.g. 730mm"
-                />
-                <Field
-                  label="Recommendation"
-                  name={`measurementRecommendations.${key}`}
-                  value={form.measurementRecommendations[key]}
-                  onChange={(e) => setField('measurementRecommendations', key, e.target.value)}
-                  placeholder="e.g. Reassess in 3 months"
-                />
+              <div key={key} className="rounded-lg border border-border p-4">
+                <p className="mb-3 text-sm font-medium text-off-white">{label}</p>
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                  <Field
+                    label="Before"
+                    name={`measurementsBefore.${key}`}
+                    value={form.measurementsBefore[key]}
+                    onChange={(e) => setField('measurementsBefore', key, e.target.value)}
+                    placeholder="e.g. 725mm"
+                  />
+                  <Field
+                    label="After"
+                    name={`measurements.${key}`}
+                    value={form.measurements[key]}
+                    onChange={(e) => setField('measurements', key, e.target.value)}
+                    placeholder="e.g. 730mm"
+                  />
+                  <Field
+                    label="Recommendation"
+                    name={`measurementRecommendations.${key}`}
+                    value={form.measurementRecommendations[key]}
+                    onChange={(e) => setField('measurementRecommendations', key, e.target.value)}
+                    placeholder="e.g. Reassess in 3 months"
+                  />
+                </div>
               </div>
             ))}
           </div>
         </SectionCard>
 
         <SectionCard step="03" title="Shoes and Cleats">
-          <div className="grid grid-cols-1 gap-5 sm:grid-cols-3">
-            <Field
-              label="Sit-bone width"
-              name="cleatFit.sitBoneWidth"
-              value={form.cleatFit.sitBoneWidth}
-              onChange={(e) => setField('cleatFit', 'sitBoneWidth', e.target.value)}
-              placeholder="e.g. 120mm"
-            />
-            <Field
-              label="Knee angle"
-              name="cleatFit.kneeAngle"
-              value={form.cleatFit.kneeAngle}
-              onChange={(e) => setField('cleatFit', 'kneeAngle', e.target.value)}
-              placeholder="e.g. 40°"
-            />
-          </div>
-          <div className="mt-5 grid grid-cols-1 gap-5 sm:grid-cols-2">
-            <Field
-              label="Cleat position — left"
-              name="cleatFit.cleatPosition.left"
-              value={form.cleatFit.cleatPosition.left}
-              onChange={(e) => setCleatPosition('left', e.target.value)}
-              placeholder="e.g. 190mm"
-            />
-            <Field
-              label="Cleat position — right"
-              name="cleatFit.cleatPosition.right"
-              value={form.cleatFit.cleatPosition.right}
-              onChange={(e) => setCleatPosition('right', e.target.value)}
-              placeholder="e.g. 190mm"
-            />
+          <Field
+            label="Sit-bone width"
+            name="cleatFit.sitBoneWidth"
+            value={form.cleatFit.sitBoneWidth}
+            onChange={(e) => setField('cleatFit', 'sitBoneWidth', e.target.value)}
+            placeholder="e.g. 120mm"
+          />
+
+          <div className="mt-5 space-y-5">
+            <div className="rounded-lg border border-border p-4">
+              <p className="mb-3 text-sm font-medium text-off-white">Knee angle</p>
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <Field
+                  label="Before"
+                  name="cleatFit.kneeAngleBefore"
+                  value={form.cleatFit.kneeAngleBefore}
+                  onChange={(e) => setField('cleatFit', 'kneeAngleBefore', e.target.value)}
+                  placeholder="e.g. 45°"
+                />
+                <Field
+                  label="After"
+                  name="cleatFit.kneeAngle"
+                  value={form.cleatFit.kneeAngle}
+                  onChange={(e) => setField('cleatFit', 'kneeAngle', e.target.value)}
+                  placeholder="e.g. 40°"
+                />
+              </div>
+            </div>
+            <div className="rounded-lg border border-border p-4">
+              <p className="mb-3 text-sm font-medium text-off-white">Cleat position — left</p>
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <Field
+                  label="Before"
+                  name="cleatFit.cleatPositionBefore.left"
+                  value={form.cleatFit.cleatPositionBefore.left}
+                  onChange={(e) => setCleatPosition('cleatPositionBefore', 'left', e.target.value)}
+                  placeholder="e.g. 188mm"
+                />
+                <Field
+                  label="After"
+                  name="cleatFit.cleatPosition.left"
+                  value={form.cleatFit.cleatPosition.left}
+                  onChange={(e) => setCleatPosition('cleatPosition', 'left', e.target.value)}
+                  placeholder="e.g. 190mm"
+                />
+              </div>
+            </div>
+            <div className="rounded-lg border border-border p-4">
+              <p className="mb-3 text-sm font-medium text-off-white">Cleat position — right</p>
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <Field
+                  label="Before"
+                  name="cleatFit.cleatPositionBefore.right"
+                  value={form.cleatFit.cleatPositionBefore.right}
+                  onChange={(e) => setCleatPosition('cleatPositionBefore', 'right', e.target.value)}
+                  placeholder="e.g. 188mm"
+                />
+                <Field
+                  label="After"
+                  name="cleatFit.cleatPosition.right"
+                  value={form.cleatFit.cleatPosition.right}
+                  onChange={(e) => setCleatPosition('cleatPosition', 'right', e.target.value)}
+                  placeholder="e.g. 190mm"
+                />
+              </div>
+            </div>
           </div>
 
           <div className="mt-6 border-t border-border pt-5">
@@ -688,6 +878,57 @@ export default function FitterView() {
             value={form.notes}
             onChange={(e) => setField(null, 'notes', e.target.value)}
           />
+        </SectionCard>
+
+        <SectionCard
+          title="Components fitted"
+          subtitle="Parts added during this session — shown on the client's profile and listed on Dunkeld Cycles' monthly invoice."
+        >
+          <div className="space-y-4">
+            {(form.components || []).map((c, i) => (
+              <div key={i} className="rounded-lg border border-border p-4">
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-[1fr_1.5fr_8rem]">
+                  <Field
+                    label="Brand"
+                    name={`components.${i}.brand`}
+                    value={c.brand}
+                    onChange={(e) => setComponent(i, 'brand', e.target.value)}
+                    placeholder="e.g. Ritchey"
+                  />
+                  <Field
+                    label="Description"
+                    name={`components.${i}.description`}
+                    value={c.description}
+                    onChange={(e) => setComponent(i, 'description', e.target.value)}
+                    placeholder="e.g. 60mm stem"
+                  />
+                  <Field
+                    label="Retail price (R)"
+                    name={`components.${i}.price`}
+                    inputMode="decimal"
+                    value={c.price}
+                    onChange={(e) => setComponent(i, 'price', e.target.value)}
+                    placeholder="1200"
+                  />
+                </div>
+                <button
+                  type="button"
+                  onClick={() => removeComponent(i)}
+                  className="mt-3 text-sm text-muted underline decoration-border underline-offset-4 hover:text-off-white"
+                >
+                  Remove
+                </button>
+              </div>
+            ))}
+          </div>
+          {errors.components && <p className="mt-3 text-sm text-orange">{errors.components}</p>}
+          <button
+            type="button"
+            onClick={addComponent}
+            className="mt-4 rounded-lg border border-border px-5 py-2.5 text-sm font-medium text-off-white transition-colors hover:border-orange"
+          >
+            + Add component
+          </button>
         </SectionCard>
 
         <div className="relative pt-4">

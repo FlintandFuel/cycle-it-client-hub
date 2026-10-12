@@ -6,6 +6,8 @@ import { sendProfileEmail } from '../lib/sendProfileEmail'
 import { auth } from '../lib/firebase'
 import { ALLOWED_EMAILS } from '../lib/allowedEmails'
 import FitDiagram from '../components/FitDiagram'
+import { formatRand } from '../lib/formatRand'
+import { demoProfile } from '../lib/demoData'
 import Toast from '../components/Toast'
 import logo from '../assets/cycle-it-logo-white.png'
 
@@ -58,6 +60,19 @@ export default function ClientProfileView() {
   }, [toast])
 
   useEffect(() => {
+    // Dev-only example at /p/preview-demo — import.meta.env.DEV is stripped
+    // from production builds, so this never ships.
+    if (import.meta.env.DEV && id === 'preview-demo') {
+      setProfile({
+        ...demoProfile,
+        newBikeFit: 'Yes',
+        components: [
+          { brand: 'Ritchey', description: '60mm stem', price: 1200 },
+          { brand: 'Fizik', description: 'Antares saddle', price: 2450.5 },
+        ],
+      })
+      return
+    }
     let active = true
     getProfile(id).then((p) => {
       if (active) setProfile(p)
@@ -220,6 +235,16 @@ export default function ClientProfileView() {
               <span className="text-off-white">{profile.fitSpecialist}</span>
             </div>
           </div>
+          {profile.newBikeFit === 'Yes' && (
+            <div className="mt-4 flex items-center gap-2 border-t border-border pt-4">
+              <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-orange/15 text-orange">
+                <svg viewBox="0 0 24 24" className="h-3 w-3" fill="none" stroke="currentColor" strokeWidth="3">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                </svg>
+              </span>
+              <span className="text-sm font-medium text-orange">New bike fit</span>
+            </div>
+          )}
         </div>
 
         {/* MTB details */}
@@ -231,10 +256,10 @@ export default function ClientProfileView() {
                 MTB Details
               </h2>
               <div className="overflow-hidden rounded-xl border border-border">
-                <Row label="Shock pressure — front" value={profile.mtbDetails.shockPressureFront} />
-                <Row label="Shock pressure — rear" value={profile.mtbDetails.shockPressureRear} striped />
-                <Row label="Saddle brand" value={profile.mtbDetails.saddleBrand} />
-                <Row label="Pedals" value={profile.mtbDetails.pedals} striped />
+                <SimpleRow label="Shock pressure — front" value={profile.mtbDetails.shockPressureFront} />
+                <SimpleRow label="Shock pressure — rear" value={profile.mtbDetails.shockPressureRear} striped />
+                <SimpleRow label="Saddle brand" value={profile.mtbDetails.saddleBrand} />
+                <SimpleRow label="Pedals" value={profile.mtbDetails.pedals} striped />
               </div>
             </section>
           )}
@@ -246,20 +271,17 @@ export default function ClientProfileView() {
           </h2>
           <FitDiagram />
           <div className="mt-3 overflow-hidden rounded-xl border border-border">
-            <div className="grid grid-cols-[minmax(0,1fr)_5rem_7rem] items-center gap-4 bg-ink-raised px-4 py-2.5 text-[11px] font-semibold uppercase tracking-wide text-muted">
-              <span>Measurement</span>
-              <span className="text-right">Value</span>
-              <span className="text-right">Recommendation</span>
-            </div>
             {getMeasurements(profile.bikeType).map(({ key, label, letter }, i) => (
-              <Row
+              <MeasurementRow
                 key={key}
                 letter={letter}
                 label={label}
-                value={profile.measurements?.[key]}
-                recommendation={profile.measurementRecommendations?.[key]}
-                showRecommendation
                 striped={i % 2 === 1}
+                columns={[
+                  { label: 'Before', value: profile.measurementsBefore?.[key] },
+                  { label: 'After', value: profile.measurements?.[key] },
+                  { label: 'Recommendation', value: profile.measurementRecommendations?.[key] },
+                ]}
               />
             ))}
           </div>
@@ -271,31 +293,70 @@ export default function ClientProfileView() {
             Shoes and Cleats
           </h2>
           <div className="overflow-hidden rounded-xl border border-border">
-            <Row label="Sit-bone width" value={profile.cleatFit?.sitBoneWidth} />
-            <Row label="Knee angle" value={profile.cleatFit?.kneeAngle} striped />
-            <div className="flex items-center justify-between px-4 py-3.5 bg-ink">
-              <span className="text-sm text-muted">Cleat position</span>
-              <span className="flex shrink-0 gap-6 text-sm font-medium text-off-white">
-                <span>
-                  <span className="mr-1.5 text-xs font-normal text-muted">L</span>
-                  {profile.cleatFit?.cleatPosition?.left || '—'}
-                </span>
-                <span>
-                  <span className="mr-1.5 text-xs font-normal text-muted">R</span>
-                  {profile.cleatFit?.cleatPosition?.right || '—'}
-                </span>
-              </span>
-            </div>
+            <SimpleRow label="Sit-bone width" value={profile.cleatFit?.sitBoneWidth} />
+          </div>
+
+          <div className="mt-3 overflow-hidden rounded-xl border border-border">
+            <MeasurementRow
+              label="Knee angle"
+              columns={[
+                { label: 'Before', value: profile.cleatFit?.kneeAngleBefore },
+                { label: 'After', value: profile.cleatFit?.kneeAngle },
+              ]}
+            />
+            <MeasurementRow
+              label="Cleat position — left"
+              striped
+              columns={[
+                { label: 'Before', value: profile.cleatFit?.cleatPositionBefore?.left },
+                { label: 'After', value: profile.cleatFit?.cleatPosition?.left },
+              ]}
+            />
+            <MeasurementRow
+              label="Cleat position — right"
+              columns={[
+                { label: 'Before', value: profile.cleatFit?.cleatPositionBefore?.right },
+                { label: 'After', value: profile.cleatFit?.cleatPosition?.right },
+              ]}
+            />
           </div>
 
           <p className="mb-3 mt-5 text-sm font-semibold uppercase tracking-widest text-muted">
             Shoe Recommendations
           </p>
           <div className="overflow-hidden rounded-xl border border-border">
-            <Row label="Shoe name" value={profile.cleatFit?.shoeType} />
-            <Row label="Size" value={profile.cleatFit?.shoeSize} striped />
+            <SimpleRow label="Shoe name" value={profile.cleatFit?.shoeType} />
+            <SimpleRow label="Size" value={profile.cleatFit?.shoeSize} striped />
           </div>
         </section>
+
+        {/* Components fitted */}
+        {profile.components?.length > 0 && (
+          <section className="mt-6">
+            <h2 className="mb-3 text-sm font-semibold uppercase tracking-widest text-muted">
+              Components fitted
+            </h2>
+            <div className="overflow-hidden rounded-xl border border-border">
+              {profile.components.map((c, i) => (
+                <div
+                  key={i}
+                  className={`flex items-start justify-between gap-4 px-4 py-3.5 ${i % 2 === 1 ? 'bg-ink-raised' : 'bg-ink'}`}
+                >
+                  <span className="min-w-0 break-words text-sm text-off-white">
+                    {c.brand} — {c.description}
+                  </span>
+                  <span className="shrink-0 text-sm font-medium text-off-white">{formatRand(c.price)}</span>
+                </div>
+              ))}
+              <div className="flex items-center justify-between border-t border-border bg-ink-raised px-4 py-3">
+                <span className="text-sm text-muted">Total</span>
+                <span className="text-sm font-semibold text-orange">
+                  {formatRand(profile.components.reduce((sum, c) => sum + (Number(c.price) || 0), 0))}
+                </span>
+              </div>
+            </div>
+          </section>
+        )}
 
         {/* Notes */}
         {(profile.notes || profile.pressureMapping) && (
@@ -325,25 +386,42 @@ export default function ClientProfileView() {
   )
 }
 
-function Row({ label, value, recommendation, striped, letter, showRecommendation }) {
+function SimpleRow({ label, value, striped }) {
   return (
-    <div
-      className={`grid items-start gap-4 px-4 py-3.5 ${
-        showRecommendation ? 'grid-cols-[minmax(0,1fr)_5rem_7rem]' : 'grid-cols-[minmax(0,1fr)_5rem]'
-      } ${striped ? 'bg-ink-raised' : 'bg-ink'}`}
-    >
-      <span className="flex min-w-0 items-center gap-2.5 pt-0.5 text-sm text-muted">
+    <div className={`flex items-start justify-between gap-4 px-4 py-3.5 ${striped ? 'bg-ink-raised' : 'bg-ink'}`}>
+      <span className="min-w-0 break-words pt-0.5 text-sm text-muted">{label}</span>
+      <span className="shrink-0 pt-0.5 text-right text-sm font-medium text-off-white">{value || '—'}</span>
+    </div>
+  )
+}
+
+// Measurement name on its own line, then its columns (before/after[/
+// recommendation]) underneath — side by side on desktop, stacked on
+// mobile. Used for anything that's adjustable during a fit, so the client
+// can see what changed rather than just the end result.
+function MeasurementRow({ label, letter, columns, striped }) {
+  return (
+    <div className={`px-4 py-3.5 ${striped ? 'bg-ink-raised' : 'bg-ink'}`}>
+      <div className="flex items-center gap-2.5 text-sm text-muted">
         {letter && (
           <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-orange/40 text-[10px] font-bold text-orange">
             {letter}
           </span>
         )}
         <span className="min-w-0 break-words">{label}</span>
-      </span>
-      <span className="pt-0.5 text-right text-sm font-medium text-off-white">{value || '—'}</span>
-      {showRecommendation && (
-        <span className="pt-0.5 text-right text-sm text-off-white/80">{recommendation || '—'}</span>
-      )}
+      </div>
+      <div
+        className={`mt-2.5 grid grid-cols-1 gap-2 sm:gap-4 ${
+          columns.length === 3 ? 'sm:grid-cols-3' : 'sm:grid-cols-2'
+        }`}
+      >
+        {columns.map((col) => (
+          <div key={col.label} className="flex items-center justify-between sm:block">
+            <span className="text-[11px] font-semibold uppercase tracking-wide text-muted">{col.label}</span>
+            <span className="text-sm font-medium text-off-white sm:mt-1 sm:block">{col.value || '—'}</span>
+          </div>
+        ))}
+      </div>
     </div>
   )
 }
