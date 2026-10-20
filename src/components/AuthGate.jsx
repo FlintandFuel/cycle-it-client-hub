@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
-import { onAuthStateChanged, signInWithPopup, signOut } from 'firebase/auth'
-import { auth, googleProvider } from '../lib/firebase'
+import { getRedirectResult, onAuthStateChanged, signInWithPopup, signInWithRedirect, signOut } from 'firebase/auth'
+import { auth, googleProvider, useRedirectSignIn } from '../lib/firebase'
 import { ALLOWED_EMAILS } from '../lib/allowedEmails'
 import logo from '../assets/cycle-it-logo-white.png'
 
@@ -24,9 +24,18 @@ export default function AuthGate({ children }) {
     [],
   )
 
+  useEffect(() => {
+    if (!useRedirectSignIn) return
+    getRedirectResult(auth).catch((e) => setError(`Sign-in failed (${e.code || e.message}). Try again.`))
+  }, [])
+
   async function handleSignIn() {
     setError('')
     try {
+      if (useRedirectSignIn) {
+        await signInWithRedirect(auth, googleProvider)
+        return
+      }
       await signInWithPopup(auth, googleProvider)
     } catch {
       setError('Sign-in failed or was cancelled. Try again.')

@@ -15,7 +15,21 @@ const firebaseConfig = {
   appId: '1:89478750002:web:a04273bbbe52902822012b',
 }
 
-const app = initializeApp(firebaseConfig)
+// Tablets/phones: popup sign-in gets blocked or loses its result, and a
+// redirect through the separate firebaseapp.com domain loses it too when the
+// browser partitions third-party storage (the login button just bounces back
+// to the sign-in screen). Serving the auth handler from the app's own host
+// (Firebase Hosting serves /__/auth/* on every hosting domain) keeps the
+// whole round trip first-party. Needs https://<host>/__/auth/handler in the
+// OAuth client's authorized redirect URIs.
+export const useRedirectSignIn =
+  typeof navigator !== 'undefined' &&
+  /Android|iPhone|iPad|iPod|Mobile|Tablet/i.test(navigator.userAgent) &&
+  !['localhost', '127.0.0.1'].includes(window.location.hostname)
+
+const app = initializeApp(
+  useRedirectSignIn ? { ...firebaseConfig, authDomain: window.location.host } : firebaseConfig,
+)
 
 // Persistent local cache: writes made with weak/no signal (mid fit,
 // on-site at a client's house) queue in IndexedDB and sync automatically
