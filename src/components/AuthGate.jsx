@@ -18,7 +18,9 @@ export default function AuthGate({ children }) {
           setUser(null)
           return
         }
-        setDenied(false)
+        // Keep the "not authorized" message through the signOut() above, which
+        // fires this callback again with u === null.
+        if (u) setDenied(false)
         setUser(u)
       }),
     [],

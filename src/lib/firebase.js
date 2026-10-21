@@ -42,6 +42,9 @@ export const db = initializeFirestore(app, {
 })
 export const auth = getAuth(app)
 export const googleProvider = new GoogleAuthProvider()
+// Always show the account chooser — a shared tablet is usually already signed
+// into someone else's Google account, which would otherwise be picked silently.
+googleProvider.setCustomParameters({ prompt: 'select_account' })
 // Region must match where functions/index.js deploys to (europe-west1,
 // closest to South Africa) — calling the default us-central1 endpoint
 // would just 404.
