@@ -12,7 +12,7 @@ const { cycleEndingOnOrBefore, cycleContaining } = require('./lib/billingPeriod'
 // Mirrors src/lib/allowedEmails.js and firestore.rules — keep all three in
 // sync (can't share the ES module across the client bundle and this
 // CommonJS function).
-const ALLOWED_FITTER_EMAILS = ['ruan.photos26@gmail.com', 'cvaniek@gmail.com']
+const ALLOWED_FITTER_EMAILS = ['ruan.photos26@gmail.com', 'cvaniek@gmail.com', 'cycle.itt@gmail.com']
 
 // The bike shop Cycle-It bills monthly for new bike fits done on-site.
 const INVOICE_RECIPIENT_EMAIL = 'cvaniek@gmail.com'

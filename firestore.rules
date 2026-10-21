@@ -13,15 +13,15 @@ service cloud.firestore {
     match /profiles/{profileId} {
       allow get: if true;
       allow list: if request.auth != null &&
-        request.auth.token.email in ['ruan.photos26@gmail.com', 'cvaniek@gmail.com'];
+        request.auth.token.email in ['ruan.photos26@gmail.com', 'cvaniek@gmail.com', 'cycle.itt@gmail.com'];
 
       allow create: if request.resource.data.client.consentGiven == true;
 
       // Edit/delete from the fitter dashboard — same allowlist as `list`.
       allow update: if request.auth != null &&
-        request.auth.token.email in ['ruan.photos26@gmail.com', 'cvaniek@gmail.com'];
+        request.auth.token.email in ['ruan.photos26@gmail.com', 'cvaniek@gmail.com', 'cycle.itt@gmail.com'];
       allow delete: if request.auth != null &&
-        request.auth.token.email in ['ruan.photos26@gmail.com', 'cvaniek@gmail.com'];
+        request.auth.token.email in ['ruan.photos26@gmail.com', 'cvaniek@gmail.com', 'cycle.itt@gmail.com'];
     }
 
     // Calendly's booking-confirmation redirect lands an unauthenticated
@@ -33,7 +33,7 @@ service cloud.firestore {
     match /bookings/{bookingId} {
       allow get: if false;
       allow list: if request.auth != null &&
-        request.auth.token.email in ['ruan.photos26@gmail.com', 'cvaniek@gmail.com'];
+        request.auth.token.email in ['ruan.photos26@gmail.com', 'cvaniek@gmail.com', 'cycle.itt@gmail.com'];
 
       allow create: if request.resource.data.name is string &&
         request.resource.data.name.size() > 0 &&
@@ -52,7 +52,7 @@ service cloud.firestore {
     match /invoices/{invoiceId} {
       allow get: if true;
       allow list: if request.auth != null &&
-        request.auth.token.email in ['ruan.photos26@gmail.com', 'cvaniek@gmail.com'];
+        request.auth.token.email in ['ruan.photos26@gmail.com', 'cvaniek@gmail.com', 'cycle.itt@gmail.com'];
 
       allow create: if false;
       allow update: if false;
