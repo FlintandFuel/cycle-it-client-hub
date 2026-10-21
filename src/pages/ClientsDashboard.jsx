@@ -148,12 +148,6 @@ export default function ClientsDashboard() {
               />
             </div>
             <Link
-              to="/invoices"
-              className="shrink-0 text-sm text-muted underline decoration-border underline-offset-4 hover:text-off-white"
-            >
-              Invoices
-            </Link>
-            <Link
               to="/new"
               className="shrink-0 rounded-lg bg-orange px-4 py-2.5 text-sm font-semibold text-ink transition-colors hover:bg-orange-light"
             >
