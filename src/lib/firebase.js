@@ -24,7 +24,10 @@ const firebaseConfig = {
 // OAuth client's authorized redirect URIs.
 export const useRedirectSignIn =
   typeof navigator !== 'undefined' &&
-  /Android|iPhone|iPad|iPod|Mobile|Tablet/i.test(navigator.userAgent) &&
+  // "Desktop site" mode strips Android/Mobile from the user agent, so also
+  // treat any touchscreen device as a tablet.
+  (/Android|iPhone|iPad|iPod|Mobile|Tablet/i.test(navigator.userAgent) ||
+    navigator.maxTouchPoints > 1) &&
   !['localhost', '127.0.0.1'].includes(window.location.hostname)
 
 const app = initializeApp(
