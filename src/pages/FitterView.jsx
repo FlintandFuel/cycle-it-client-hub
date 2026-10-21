@@ -4,6 +4,7 @@ import { onAuthStateChanged } from 'firebase/auth'
 import Field from '../components/Field'
 import SectionCard from '../components/SectionCard'
 import Toast from '../components/Toast'
+import FitterNav from '../components/FitterNav'
 import { createProfile, getProfile, updateProfile } from '../lib/profileStore'
 import { sendProfileEmail } from '../lib/sendProfileEmail'
 import { listRecentBookings } from '../lib/bookingStore'
@@ -526,6 +527,8 @@ export default function FitterView() {
 
   return (
     <div className="min-h-screen bg-ink pb-24">
+      {/* /edit/:id is wrapped in AuthGate, which already renders the nav. */}
+      {!isEditing && <FitterNav />}
       <header className="border-b border-border">
         <div className="mx-auto flex max-w-3xl items-start justify-between px-4 py-8 sm:px-6">
           <div>

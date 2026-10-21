@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { getRedirectResult, onAuthStateChanged, signInWithPopup, signInWithRedirect, signOut } from 'firebase/auth'
 import { auth, googleProvider, useRedirectSignIn } from '../lib/firebase'
 import { ALLOWED_EMAILS } from '../lib/allowedEmails'
+import FitterNav from './FitterNav'
 import logo from '../assets/cycle-it-logo-white.png'
 
 export default function AuthGate({ children }) {
@@ -80,15 +81,15 @@ export default function AuthGate({ children }) {
 
   return (
     <div>
-      <div className="flex items-center justify-end gap-3 border-b border-border bg-ink px-4 py-2 sm:px-6">
-        <span className="text-xs text-muted">{user.email}</span>
+      <FitterNav>
+        <span className="hidden text-xs text-muted sm:inline">{user.email}</span>
         <button
           onClick={() => signOut(auth)}
           className="text-xs font-medium text-muted underline decoration-border underline-offset-4 hover:text-off-white"
         >
           Sign out
         </button>
-      </div>
+      </FitterNav>
       {children}
     </div>
   )
