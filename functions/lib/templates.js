@@ -110,11 +110,8 @@ function esc(value) {
     .replace(/>/g, '&gt;')
 }
 
-// Empty string when nothing was logged this cycle, so an invoice for a
-// month with no parts fitted looks exactly as it did before.
-function componentsSection(invoice) {
+function componentsTable(invoice) {
   const components = invoice.components || []
-  if (!components.length) return ''
 
   const th = `text-align:left;padding:10px 12px;font-size:11px;text-transform:uppercase;letter-spacing:0.05em;color:${MUTED};`
   const rows = components
@@ -131,10 +128,6 @@ function componentsSection(invoice) {
     .join('')
 
   return `
-    <h2 style="margin:8px 0 8px;font-size:18px;">Components fitted</h2>
-    <p style="margin:0 0 16px;font-size:15px;line-height:1.6;color:${INK};">
-      Parts added during fit sessions this billing period, at retail price — ${components.length} in total.
-    </p>
     <table style="width:100%;border-collapse:collapse;margin:0 0 24px;">
       <thead>
         <tr style="background:#F4F4F2;">
@@ -217,7 +210,6 @@ function buildInvoiceEmail({ invoice, invoiceUrl }) {
       </thead>
       <tbody>${rows}</tbody>
     </table>
-    ${componentsSection(invoice)}
     <p style="margin:0 0 28px;">${button(invoiceUrl, 'View online')}</p>
     <p style="margin:0;padding-top:20px;border-top:1px solid #E7E7E5;font-size:14px;line-height:1.6;color:${INK};">
       Any questions, just reply to this email.<br/><br/>
@@ -226,6 +218,34 @@ function buildInvoiceEmail({ invoice, invoiceUrl }) {
     </p>
   `,
     headerRight,
+  )
+
+  return { subject, html }
+}
+
+// Separate from the invoice: components are fitted for the shop's own
+// customers and sold by the shop, so this is just a retail-value list for
+// their records, not something Cycle-It bills for.
+function buildComponentsEmail({ invoice }) {
+  const periodLabel = `${formatInvoiceDate(invoice.periodStart)} – ${formatInvoiceDate(invoice.periodEnd)}`
+  const count = (invoice.components || []).length
+  const subject = `Cycle-It components sold — ${periodLabel}`
+
+  const html = layout(
+    `
+    <h1 style="margin:0 0 4px;font-size:22px;">Components sold</h1>
+    <p style="margin:0 0 20px;font-size:14px;color:${MUTED};">${periodLabel}</p>
+    <p style="margin:0 0 20px;font-size:15px;line-height:1.6;color:${INK};">
+      Parts fitted during fit sessions this period, listed at retail price — ${count} in total. This is a list for your records, not an invoice.
+    </p>
+    ${componentsTable(invoice)}
+    <p style="margin:0;padding-top:20px;border-top:1px solid #E7E7E5;font-size:14px;line-height:1.6;color:${INK};">
+      Any questions, just reply to this email.<br/><br/>
+      <strong>Ruan Smit</strong><br/>
+      <a href="https://cycleit.co.za" style="color:${ORANGE};text-decoration:none;">cycleit.co.za</a>
+    </p>
+  `,
+    `<p style="margin:0;font-size:12px;font-weight:700;letter-spacing:0.15em;text-transform:uppercase;color:${INK};">Components</p>`,
   )
 
   return { subject, html }
@@ -251,4 +271,4 @@ function optOutConfirmationPage() {
 </html>`
 }
 
-module.exports = { buildProfileEmail, buildInvoiceEmail, optOutConfirmationPage }
+module.exports = { buildProfileEmail, buildInvoiceEmail, buildComponentsEmail, optOutConfirmationPage }

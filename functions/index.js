@@ -6,7 +6,7 @@ const logger = require('firebase-functions/logger')
 const admin = require('firebase-admin')
 
 const { sendMail } = require('./lib/gmail')
-const { buildProfileEmail, buildInvoiceEmail, optOutConfirmationPage } = require('./lib/templates')
+const { buildProfileEmail, buildInvoiceEmail, buildComponentsEmail, optOutConfirmationPage } = require('./lib/templates')
 const { cycleEndingOnOrBefore, cycleContaining } = require('./lib/billingPeriod')
 
 // Mirrors src/lib/allowedEmails.js and firestore.rules — keep all three in
@@ -246,6 +246,28 @@ async function sendInvoice(ref, { manual } = {}) {
   return invoice
 }
 
+// The components list goes out as its own email alongside the invoice. Has
+// its own sent flags so a failure on one doesn't block or repeat the other;
+// nothing is sent for a period with no components.
+async function sendComponentsList(ref, { manual } = {}) {
+  const snap = await ref.get()
+  const invoice = snap.data()
+  if (!(invoice.components || []).length) return invoice
+  const { subject, html } = buildComponentsEmail({ invoice })
+  await sendMail({ to: invoice.recipientEmail, subject, html })
+  await ref.set(
+    {
+      emailStatus: {
+        componentsSent: true,
+        componentsSentAt: admin.firestore.FieldValue.serverTimestamp(),
+        ...(manual ? { componentsLastManualSendAt: admin.firestore.FieldValue.serverTimestamp() } : null),
+      },
+    },
+    { merge: true },
+  )
+  return invoice
+}
+
 // Scheduled for the 25th of every month. Africa/Johannesburg so "the 25th"
 // means the 25th at the shop's local date, not UTC's.
 exports.onMonthlyInvoiceDue = onSchedule(
@@ -254,12 +276,17 @@ exports.onMonthlyInvoiceDue = onSchedule(
     const period = cycleEndingOnOrBefore(new Date())
     try {
       const ref = await getOrCreateInvoice(period)
-      const snap = await ref.get()
-      if (snap.data()?.emailStatus?.sent) {
+      const status = (await ref.get()).data()?.emailStatus
+      if (status?.sent) {
         logger.info(`Invoice ${ref.id} already sent, skipping scheduled send.`)
-        return
+      } else {
+        await sendInvoice(ref)
       }
-      await sendInvoice(ref)
+      if (status?.componentsSent) {
+        logger.info(`Components list ${ref.id} already sent, skipping scheduled send.`)
+      } else {
+        await sendComponentsList(ref)
+      }
     } catch (err) {
       logger.error(`Failed to send invoice ${period.id}`, err)
       throw err
@@ -286,12 +313,18 @@ exports.sendMonthlyInvoice = onCall(async (request) => {
   try {
     const ref = await getOrCreateInvoice(period)
     invoice = await sendInvoice(ref, { manual: true })
+    await sendComponentsList(ref, { manual: true })
   } catch (err) {
     logger.error(`Manual invoice send failed for ${period.id}`, err)
     throw new HttpsError('internal', 'Failed to send the invoice — check function logs for details.')
   }
 
-  return { sent: true, invoiceId: period.id, count: invoice.count }
+  return {
+    sent: true,
+    invoiceId: period.id,
+    count: invoice.count,
+    componentCount: (invoice.components || []).length,
+  }
 })
 
 // Phase 3 (3-month follow-up reminder) is dropped for now — Calendly's own

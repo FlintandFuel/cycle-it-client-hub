@@ -15,10 +15,6 @@ function formatDate(iso) {
   })
 }
 
-function formatRand(amount) {
-  return `R${Number(amount || 0).toLocaleString('en-ZA', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
-}
-
 // Period-derived, not a separate counter — mirrors functions/lib/templates.js
 // invoiceNumber() so the emailed invoice and this page always agree.
 function invoiceNumber(invoice) {
@@ -101,8 +97,6 @@ export default function InvoiceView() {
   }
 
   const business = invoice.business || {}
-  // Absent on invoices generated before components were logged.
-  const components = invoice.components || []
 
   return (
     <div className="min-h-screen bg-ink pb-16">
@@ -179,38 +173,6 @@ export default function InvoiceView() {
             </div>
           )}
         </section>
-
-        {components.length > 0 && (
-          <section className="mt-8">
-            <h2 className="mb-3 text-sm font-semibold uppercase tracking-widest text-muted">
-              Components fitted
-            </h2>
-            <div className="overflow-hidden rounded-xl border border-border">
-              {components.map((c, i) => (
-                <div
-                  key={`${c.profileId}-${i}`}
-                  className={`flex items-start justify-between gap-4 px-4 py-3 text-sm ${
-                    i % 2 === 1 ? 'bg-ink-raised' : 'bg-ink'
-                  }`}
-                >
-                  <div className="min-w-0">
-                    <p className="text-off-white">
-                      {c.brand} — {c.description}
-                    </p>
-                    <p className="mt-0.5 text-xs text-muted">
-                      {c.clientName} · {formatDate(c.fitDate)}
-                    </p>
-                  </div>
-                  <span className="shrink-0 text-off-white">{formatRand(c.price)}</span>
-                </div>
-              ))}
-              <div className="flex items-center justify-between border-t border-border bg-ink-raised px-4 py-3">
-                <span className="text-sm text-muted">Total retail</span>
-                <span className="text-lg font-semibold text-orange">{formatRand(invoice.componentsTotal)}</span>
-              </div>
-            </div>
-          </section>
-        )}
 
         <p className="mt-10 text-center text-xs text-muted">
           Questions about this invoice? Just reply to the email that brought you here.

@@ -51,7 +51,11 @@ export default function InvoicesDashboard() {
     setSending(true)
     try {
       const result = await sendMonthlyInvoice()
-      setToast({ tone: 'success', message: `Sent — ${result.count} new bike fit${result.count === 1 ? '' : 's'}` })
+      const fits = `${result.count} new bike fit${result.count === 1 ? '' : 's'}`
+      const parts = result.componentCount
+        ? ` + components list (${result.componentCount} item${result.componentCount === 1 ? '' : 's'})`
+        : ''
+      setToast({ tone: 'success', message: `Sent — ${fits}${parts}` })
       reload()
     } catch {
       setToast({ tone: 'error', message: 'Failed to send — try again' })
