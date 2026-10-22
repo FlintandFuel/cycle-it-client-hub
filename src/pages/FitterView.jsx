@@ -562,7 +562,7 @@ export default function FitterView() {
               <button
                 type="button"
                 onClick={handleClearForm}
-                className="text-sm text-muted underline decoration-border underline-offset-4 hover:text-off-white"
+                className="text-sm font-bold text-orange underline decoration-orange/40 underline-offset-4 hover:text-orange-light"
               >
                 Clear form
               </button>
