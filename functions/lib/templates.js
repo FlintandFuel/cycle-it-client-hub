@@ -97,57 +97,6 @@ function invoiceNumber(invoice) {
   return `INV-${invoice.id.replace(/-/g, '')}`
 }
 
-function formatRand(amount) {
-  return `R${Number(amount || 0).toLocaleString('en-ZA', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
-}
-
-// Brand/description are free text typed by the fitter, so escaped before
-// going into HTML.
-function esc(value) {
-  return String(value ?? '')
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-}
-
-function componentsTable(invoice) {
-  const components = invoice.components || []
-
-  const th = `text-align:left;padding:10px 12px;font-size:11px;text-transform:uppercase;letter-spacing:0.05em;color:${MUTED};`
-  const rows = components
-    .map((c, i) => {
-      const td = `padding:10px 12px;font-size:14px;color:${INK};border-bottom:1px solid #E7E7E5;`
-      return `
-        <tr style="background:${i % 2 === 1 ? '#F9F9F8' : '#ffffff'};">
-          <td style="${td}">${formatInvoiceDate(c.fitDate)}</td>
-          <td style="${td}">${esc(c.clientName)}</td>
-          <td style="${td}">${esc(c.brand)} — ${esc(c.description)}</td>
-          <td style="${td}text-align:right;white-space:nowrap;">${formatRand(c.price)}</td>
-        </tr>`
-    })
-    .join('')
-
-  return `
-    <table style="width:100%;border-collapse:collapse;margin:0 0 24px;">
-      <thead>
-        <tr style="background:#F4F4F2;">
-          <th style="${th}">Date</th>
-          <th style="${th}">Client</th>
-          <th style="${th}">Component</th>
-          <th style="${th}text-align:right;">Retail</th>
-        </tr>
-      </thead>
-      <tbody>${rows}</tbody>
-      <tfoot>
-        <tr>
-          <td colspan="3" style="padding:12px;font-size:14px;font-weight:700;color:${INK};text-align:right;">Total</td>
-          <td style="padding:12px;font-size:14px;font-weight:700;color:${INK};text-align:right;white-space:nowrap;">${formatRand(invoice.componentsTotal)}</td>
-        </tr>
-      </tfoot>
-    </table>
-  `
-}
-
 function buildInvoiceEmail({ invoice, invoiceUrl }) {
   const periodLabel = `${formatInvoiceDate(invoice.periodStart)} – ${formatInvoiceDate(invoice.periodEnd)}`
   const subject = `Cycle-It new bike fits — ${periodLabel}`
@@ -223,34 +172,6 @@ function buildInvoiceEmail({ invoice, invoiceUrl }) {
   return { subject, html }
 }
 
-// Separate from the invoice: components are fitted for the shop's own
-// customers and sold by the shop, so this is just a retail-value list for
-// their records, not something Cycle-It bills for.
-function buildComponentsEmail({ invoice }) {
-  const periodLabel = `${formatInvoiceDate(invoice.periodStart)} – ${formatInvoiceDate(invoice.periodEnd)}`
-  const count = (invoice.components || []).length
-  const subject = `Cycle-It components sold — ${periodLabel}`
-
-  const html = layout(
-    `
-    <h1 style="margin:0 0 4px;font-size:22px;">Components sold</h1>
-    <p style="margin:0 0 20px;font-size:14px;color:${MUTED};">${periodLabel}</p>
-    <p style="margin:0 0 20px;font-size:15px;line-height:1.6;color:${INK};">
-      Parts fitted during fit sessions this period, listed at retail price — ${count} in total. This is a list for your records, not an invoice.
-    </p>
-    ${componentsTable(invoice)}
-    <p style="margin:0;padding-top:20px;border-top:1px solid #E7E7E5;font-size:14px;line-height:1.6;color:${INK};">
-      Any questions, just reply to this email.<br/><br/>
-      <strong>Ruan Smit</strong><br/>
-      <a href="https://cycleit.co.za" style="color:${ORANGE};text-decoration:none;">cycleit.co.za</a>
-    </p>
-  `,
-    `<p style="margin:0;font-size:12px;font-weight:700;letter-spacing:0.15em;text-transform:uppercase;color:${INK};">Components</p>`,
-  )
-
-  return { subject, html }
-}
-
 function optOutConfirmationPage() {
   return `<!doctype html>
 <html lang="en">
@@ -271,4 +192,4 @@ function optOutConfirmationPage() {
 </html>`
 }
 
-module.exports = { buildProfileEmail, buildInvoiceEmail, buildComponentsEmail, optOutConfirmationPage }
+module.exports = { buildProfileEmail, buildInvoiceEmail, optOutConfirmationPage }

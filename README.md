@@ -28,7 +28,7 @@ set in `.firebaserc`). Firestore rules and indexes are deployed and live.
   date, status badges), with a link into each `/p/:id`. Gated behind
   Google sign-in, allowlisted to specific accounts (see "Auth"). If
   there are recent Calendly bookings (see below), a signed-in fitter also
-  sees a "Recent bookings" picker at the top of `/new` to prefill client
+  sees a "Upcoming Bookings" picker at the top of `/new` to prefill client
   details instead of asking again.
 - **`/booked`** — landing page for Calendly's booking-confirmation
   redirect; not meant to be visited directly (see "Calendly integration").
@@ -132,7 +132,7 @@ UI:
    collection) and shows a friendly "you're all set" page instead of
    raw query params.
 
-On the day, a signed-in fitter opens `/new` and sees a "Recent bookings"
+On the day, a signed-in fitter opens `/new` and sees a "Upcoming Bookings"
 row (last 20) to tap instead of retyping. Reading that list requires the
 same allowlisted sign-in as `/clients` (`firestore.rules`) — an
 unauthenticated visitor to `/new` never sees or can query it, so this

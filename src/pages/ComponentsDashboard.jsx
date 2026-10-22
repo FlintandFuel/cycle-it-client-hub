@@ -13,21 +13,10 @@ function monthLabel(periodEnd) {
   return new Date(`${periodEnd}T00:00:00`).toLocaleDateString('en-ZA', { month: 'long', year: 'numeric' })
 }
 
-function Badge({ children, tone = 'default' }) {
-  const tones = {
-    default: 'border-border text-muted',
-    on: 'border-orange/40 bg-orange/10 text-orange',
-  }
-  return (
-    <span className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs ${tones[tone]}`}>
-      {children}
-    </span>
-  )
-}
-
-// The component lists emailed to the shop each month — read from the same
-// invoice docs (functions/index.js stores `components` on each billing
-// period), so a month appears here once its invoice has been generated.
+// Monthly lists of parts fitted, for viewing in-app (not emailed) — read
+// from the invoice docs (functions/index.js stores `components` on each
+// billing period), so a month appears here once its invoice has been
+// generated.
 export default function ComponentsDashboard() {
   const [invoices, setInvoices] = useState(undefined)
   const [error, setError] = useState('')
@@ -59,7 +48,7 @@ export default function ComponentsDashboard() {
       <header className="border-b border-border">
         <div className="mx-auto max-w-3xl px-4 py-8 sm:px-6">
           <h1 className="text-2xl font-bold text-off-white sm:text-3xl">Components</h1>
-          <p className="mt-1 text-sm text-muted">Parts fitted, at retail price — sent to Dunkeld Cycles monthly</p>
+          <p className="mt-1 text-sm text-muted">Parts fitted, at retail price — by billing month</p>
         </div>
       </header>
 
@@ -69,8 +58,8 @@ export default function ComponentsDashboard() {
 
         {invoices?.length === 0 && (
           <p className="text-muted">
-            Nothing yet — each month appears once its invoice and components list are generated (the 25th, or
-            &quot;Generate &amp; send now&quot; on the Invoices page).
+            Nothing yet — each month appears once its invoice is generated (the 25th, or &quot;Generate &amp; send
+            now&quot; on the Invoices page).
           </p>
         )}
 
@@ -111,7 +100,6 @@ export default function ComponentsDashboard() {
                       {formatDate(inv.periodStart)} – {formatDate(inv.periodEnd)}
                     </p>
                   </div>
-                  {inv.emailStatus?.componentsSent ? <Badge tone="on">Sent</Badge> : <Badge>Not sent</Badge>}
                 </div>
                 <div className="overflow-hidden rounded-xl border border-border">
                   {rows.map((c, i) => (

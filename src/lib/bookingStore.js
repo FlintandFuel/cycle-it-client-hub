@@ -24,7 +24,22 @@ export async function createBooking({ name, email, phone, appointmentTime }) {
 }
 
 // Requires an authenticated, allowlisted caller — see firestore.rules.
-export async function listRecentBookings() {
-  const snap = await getDocs(query(collection(db, COLLECTION), orderBy('createdAt', 'desc'), limit(20)))
-  return snap.docs.map((d) => ({ id: d.id, ...d.data() }))
+// Calendly bookings still to come (from the start of today, so a session
+// earlier today stays listed), soonest first. Looks at the 50 most recently
+// made bookings and filters client-side — appointmentTime is a plain string
+// from Calendly, so no composite index is needed. Bookings without a usable
+// time can't be placed, so they're kept at the end rather than hidden.
+export async function listUpcomingBookings() {
+  const snap = await getDocs(query(collection(db, COLLECTION), orderBy('createdAt', 'desc'), limit(50)))
+  const startOfToday = new Date()
+  startOfToday.setHours(0, 0, 0, 0)
+
+  const withTime = (b) => ({ ...b, startsAt: b.appointmentTime ? new Date(b.appointmentTime) : null })
+  const bookings = snap.docs.map((d) => withTime({ id: d.id, ...d.data() }))
+  const valid = (b) => b.startsAt && !Number.isNaN(b.startsAt.getTime())
+
+  return [
+    ...bookings.filter((b) => valid(b) && b.startsAt >= startOfToday).sort((a, b) => a.startsAt - b.startsAt),
+    ...bookings.filter((b) => !valid(b)),
+  ]
 }

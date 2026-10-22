@@ -7,7 +7,7 @@ import Toast from '../components/Toast'
 import FitterNav from '../components/FitterNav'
 import { createProfile, getProfile, updateProfile } from '../lib/profileStore'
 import { sendProfileEmail } from '../lib/sendProfileEmail'
-import { listRecentBookings } from '../lib/bookingStore'
+import { listUpcomingBookings } from '../lib/bookingStore'
 import { DEFAULT_NOTES } from '../lib/demoData'
 import { useOnlineStatus } from '../lib/useOnlineStatus'
 import { auth } from '../lib/firebase'
@@ -205,7 +205,7 @@ export default function FitterView() {
   const [selectedBookingId, setSelectedBookingId] = useState(null)
   const [editLoadStatus, setEditLoadStatus] = useState(isEditing ? 'loading' : 'ready')
 
-  // Recent Calendly bookings (see bookingStore.js / BookedConfirmation.jsx)
+  // Upcoming Calendly bookings (see bookingStore.js / BookedConfirmation.jsx)
   // only load for a signed-in, allowlisted fitter — reading the bookings
   // collection at all requires that per firestore.rules, and it keeps the
   // no-login "standing next to a bike" flow completely unchanged for
@@ -214,7 +214,7 @@ export default function FitterView() {
     () =>
       onAuthStateChanged(auth, (u) => {
         if (u && ALLOWED_EMAILS.includes(u.email)) {
-          listRecentBookings().then(setBookings).catch(() => setBookings([]))
+          listUpcomingBookings().then(setBookings).catch(() => setBookings([]))
         } else {
           setBookings([])
         }
@@ -558,7 +558,7 @@ export default function FitterView() {
 
       <form onSubmit={handleSubmit} className="mx-auto max-w-3xl space-y-6 px-4 py-8 sm:px-6">
         {!isEditing && bookings.length > 0 && (
-          <SectionCard title="Recent bookings" subtitle="From Calendly — tap a client to fill in their details.">
+          <SectionCard title="Upcoming Bookings" subtitle="From Calendly — tap a client to fill in their details.">
             <div className="-mx-1 flex gap-3 overflow-x-auto px-1 pb-1">
               {bookings.map((b) => {
                 const selected = b.id === selectedBookingId
@@ -587,6 +587,17 @@ export default function FitterView() {
                         </svg>
                       )}
                     </div>
+                    {b.startsAt && !Number.isNaN(b.startsAt.getTime()) && (
+                      <p className="text-xs text-orange">
+                        {b.startsAt.toLocaleString('en-ZA', {
+                          weekday: 'short',
+                          day: 'numeric',
+                          month: 'short',
+                          hour: '2-digit',
+                          minute: '2-digit',
+                        })}
+                      </p>
+                    )}
                     <p className="text-xs text-muted">{b.email}</p>
                   </button>
                 )
