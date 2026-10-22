@@ -408,6 +408,13 @@ export default function FitterView() {
     setSelectedBookingId(null)
   }
 
+  // Walk-in after a booking was picked (or a half-filled form): wipe it back
+  // to blank. Confirms first since it discards everything entered so far.
+  function handleClearForm() {
+    if (!window.confirm('Clear the whole form and start again?')) return
+    handleStartNewFit()
+  }
+
   if (editLoadStatus === 'loading') {
     return (
       <div className="flex min-h-screen items-center justify-center bg-ink">
@@ -551,6 +558,15 @@ export default function FitterView() {
               <span className={`h-1.5 w-1.5 rounded-full ${online ? 'bg-muted' : 'bg-orange'}`} />
               {online ? 'Online' : 'Offline — saves will sync later'}
             </span>
+            {!isEditing && (
+              <button
+                type="button"
+                onClick={handleClearForm}
+                className="text-sm text-muted underline decoration-border underline-offset-4 hover:text-off-white"
+              >
+                Clear form
+              </button>
+            )}
             <Link
               to="/clients"
               className="text-sm text-muted underline decoration-border underline-offset-4 hover:text-off-white"
