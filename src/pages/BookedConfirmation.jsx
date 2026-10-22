@@ -11,9 +11,27 @@ import logo from '../assets/cycle-it-logo-white.png'
 // Captures them into Firestore so the fitter can pick the client from a
 // list on the day instead of asking them to fill in their details again.
 // Calendly sends custom-question answers as answer_1…answer_10 in the order
-// the questions are listed on the event type (labels aren't passed). If the
-// questions are reordered in Calendly, update this mapping to match.
-const ANSWER = { phone: 'answer_1', bikeMake: 'answer_2', bikeSize: 'answer_3' }
+// the questions are listed on that event type (labels aren't passed), and
+// each event type has its own questions — so the order is looked up by event
+// name (event_type_name, matched case-insensitively; the "- Dunkeld Cycles:
+// R995" suffix doesn't matter). Keys we don't use (address, shoeSize,
+// weight) just hold a slot. If questions change in Calendly, update here.
+const DEFAULT_ORDER = ['phone', 'bikeMake', 'bikeSize']
+const QUESTION_ORDERS = [
+  { match: 'new bike fit', order: ['phone'] },
+  { match: 'house fit', order: ['phone', 'address', 'bikeMake', 'bikeSize'] },
+  { match: 'insoles', order: ['phone', 'shoeSize', 'weight', 'bikeMake', 'bikeSize'] },
+]
+
+function answersFor(params) {
+  const eventName = (params.get('event_type_name') || '').toLowerCase()
+  const order = QUESTION_ORDERS.find((q) => eventName.includes(q.match))?.order || DEFAULT_ORDER
+  const answers = {}
+  order.forEach((key, i) => {
+    answers[key] = params.get(`answer_${i + 1}`)?.trim()
+  })
+  return answers
+}
 
 export default function BookedConfirmation() {
   const [params] = useSearchParams()
@@ -24,9 +42,9 @@ export default function BookedConfirmation() {
   // Only populated if the invitee opts into "Text me a reminder" and
   // enters a number — Calendly's native phone field, no custom question
   // needed. Left blank otherwise, same as before.
-  const phone = params.get(ANSWER.phone)?.trim() || params.get('text_reminder_number')?.trim()
-  const bikeMake = params.get(ANSWER.bikeMake)?.trim()
-  const bikeSize = params.get(ANSWER.bikeSize)?.trim()
+  const answers = answersFor(params)
+  const phone = answers.phone || params.get('text_reminder_number')?.trim()
+  const { bikeMake, bikeSize } = answers
   const appointmentTime = params.get('event_start_time')?.trim()
 
   useEffect(() => {
