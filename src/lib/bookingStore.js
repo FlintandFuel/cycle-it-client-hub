@@ -7,7 +7,7 @@ import { collection, doc, setDoc, getDocs, serverTimestamp, query, orderBy, limi
 
 const COLLECTION = 'bookings'
 
-export async function createBooking({ name, email, phone, appointmentTime }) {
+export async function createBooking({ name, email, phone, appointmentTime, bikeMake, bikeSize }) {
   const ref = doc(collection(db, COLLECTION))
   const booking = {
     id: ref.id,
@@ -15,6 +15,8 @@ export async function createBooking({ name, email, phone, appointmentTime }) {
     email,
     phone: phone || '',
     appointmentTime: appointmentTime || '',
+    bikeMake: bikeMake || '',
+    bikeSize: bikeSize || '',
     createdAt: serverTimestamp(),
   }
   // Same reasoning as createProfile: don't await the server round-trip —

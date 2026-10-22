@@ -279,6 +279,11 @@ export default function FitterView() {
     setForm((prev) => ({
       ...prev,
       client: { ...prev.client, name: booking.name, email: booking.email, phone: booking.phone || '' },
+      bike: {
+        ...prev.bike,
+        make: booking.bikeMake || prev.bike.make,
+        size: booking.bikeSize || prev.bike.size,
+      },
     }))
   }
 

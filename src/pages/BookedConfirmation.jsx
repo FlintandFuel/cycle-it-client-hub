@@ -10,6 +10,11 @@ import logo from '../assets/cycle-it-logo-white.png'
 // merge tags typed into the URL field). See README for the exact setup.
 // Captures them into Firestore so the fitter can pick the client from a
 // list on the day instead of asking them to fill in their details again.
+// Calendly sends custom-question answers as answer_1…answer_10 in the order
+// the questions are listed on the event type (labels aren't passed). If the
+// questions are reordered in Calendly, update this mapping to match.
+const ANSWER = { bikeMake: 'answer_1', phone: 'answer_2', bikeSize: 'answer_3' }
+
 export default function BookedConfirmation() {
   const [params] = useSearchParams()
   const [status, setStatus] = useState('saving')
@@ -19,7 +24,9 @@ export default function BookedConfirmation() {
   // Only populated if the invitee opts into "Text me a reminder" and
   // enters a number — Calendly's native phone field, no custom question
   // needed. Left blank otherwise, same as before.
-  const phone = params.get('text_reminder_number')?.trim()
+  const phone = params.get(ANSWER.phone)?.trim() || params.get('text_reminder_number')?.trim()
+  const bikeMake = params.get(ANSWER.bikeMake)?.trim()
+  const bikeSize = params.get(ANSWER.bikeSize)?.trim()
   const appointmentTime = params.get('event_start_time')?.trim()
 
   useEffect(() => {
@@ -27,8 +34,8 @@ export default function BookedConfirmation() {
       setStatus('missing')
       return
     }
-    createBooking({ name, email, phone, appointmentTime }).then(() => setStatus('saved'))
-  }, [name, email, phone, appointmentTime])
+    createBooking({ name, email, phone, appointmentTime, bikeMake, bikeSize }).then(() => setStatus('saved'))
+  }, [name, email, phone, appointmentTime, bikeMake, bikeSize])
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-ink px-4">
