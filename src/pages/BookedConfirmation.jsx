@@ -13,7 +13,7 @@ import logo from '../assets/cycle-it-logo-white.png'
 // Calendly sends custom-question answers as answer_1…answer_10 in the order
 // the questions are listed on the event type (labels aren't passed). If the
 // questions are reordered in Calendly, update this mapping to match.
-const ANSWER = { bikeMake: 'answer_1', phone: 'answer_2', bikeSize: 'answer_3' }
+const ANSWER = { phone: 'answer_1', bikeMake: 'answer_2', bikeSize: 'answer_3' }
 
 export default function BookedConfirmation() {
   const [params] = useSearchParams()
