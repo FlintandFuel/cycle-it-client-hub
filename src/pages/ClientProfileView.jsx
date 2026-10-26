@@ -330,6 +330,19 @@ export default function ClientProfileView() {
           </div>
         </section>
 
+        {/* Saddle recommendations */}
+        {(profile.saddleRecommendation?.saddle || profile.saddleRecommendation?.width) && (
+          <section className="mt-6">
+            <h2 className="mb-3 text-sm font-semibold uppercase tracking-widest text-muted">
+              Saddle Recommendations
+            </h2>
+            <div className="overflow-hidden rounded-xl border border-border">
+              <SimpleRow label="Saddle name" value={profile.saddleRecommendation.saddle} />
+              <SimpleRow label="Width" value={profile.saddleRecommendation.width} striped />
+            </div>
+          </section>
+        )}
+
         {/* Components fitted */}
         {profile.components?.length > 0 && (
           <section className="mt-6">

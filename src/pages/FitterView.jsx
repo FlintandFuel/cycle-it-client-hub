@@ -82,6 +82,7 @@ const emptyForm = {
     shoeType: '',
     shoeSize: '',
   },
+  saddleRecommendation: { saddle: '', width: '' },
   pressureMapping: 'No',
   // Parts fitted during the session, passed on to Dunkeld Cycles in the
   // monthly invoice (functions/index.js getOrCreateInvoice), and shown on
@@ -252,6 +253,7 @@ export default function FitterView() {
           ...p,
           cleatFit: { ...emptyForm.cleatFit, ...p.cleatFit },
           mtbDetails: { ...emptyForm.mtbDetails, ...p.mtbDetails },
+          saddleRecommendation: { ...emptyForm.saddleRecommendation, ...p.saddleRecommendation },
         })
         setEditLoadStatus('ready')
       } else {
@@ -885,7 +887,26 @@ export default function FitterView() {
           </div>
         </SectionCard>
 
-        <SectionCard step="04" title="Notes">
+        <SectionCard step="04" title="Saddle recommendations">
+          <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+            <Field
+              label="Saddle name"
+              name="saddleRecommendation.saddle"
+              value={form.saddleRecommendation.saddle}
+              onChange={(e) => setField('saddleRecommendation', 'saddle', e.target.value)}
+              placeholder="e.g. Specialized Power Arc"
+            />
+            <Field
+              label="Width"
+              name="saddleRecommendation.width"
+              value={form.saddleRecommendation.width}
+              onChange={(e) => setField('saddleRecommendation', 'width', e.target.value)}
+              placeholder="e.g. 143mm"
+            />
+          </div>
+        </SectionCard>
+
+        <SectionCard step="05" title="Notes">
           <div className="mb-5">
             <span className="mb-1.5 block text-sm font-medium text-muted">Pressure mapping</span>
             <div className="flex gap-2">
