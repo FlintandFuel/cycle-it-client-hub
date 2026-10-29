@@ -7,6 +7,7 @@ import InvoiceView from './pages/InvoiceView'
 import InvoicesDashboard from './pages/InvoicesDashboard'
 import ComponentsDashboard from './pages/ComponentsDashboard'
 import NewFitsDashboard from './pages/NewFitsDashboard'
+import NewComponentView from './pages/NewComponentView'
 import BookedConfirmation from './pages/BookedConfirmation'
 import AuthGate from './components/AuthGate'
 
@@ -55,6 +56,14 @@ export default function App() {
         element={
           <AuthGate>
             <ComponentsDashboard />
+          </AuthGate>
+        }
+      />
+      <Route
+        path="/components/new"
+        element={
+          <AuthGate>
+            <NewComponentView />
           </AuthGate>
         }
       />

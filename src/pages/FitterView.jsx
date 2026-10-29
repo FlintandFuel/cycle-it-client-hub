@@ -12,6 +12,7 @@ import { DEFAULT_NOTES } from '../lib/demoData'
 import { useOnlineStatus } from '../lib/useOnlineStatus'
 import { auth } from '../lib/firebase'
 import { ALLOWED_EMAILS } from '../lib/allowedEmails'
+import { parsePrice } from '../lib/parsePrice'
 import logo from '../assets/cycle-it-logo-white.png'
 
 const todayISO = () => new Date().toISOString().slice(0, 10)
@@ -142,18 +143,6 @@ function clearDraft(key) {
 }
 
 const emptyComponent = { brand: '', description: '', price: '' }
-
-// Accepts "1200", "1 200", "R1,200.50" and "1200,50" — the fitter types
-// these on a phone, so be forgiving rather than rejecting South African
-// decimal commas. Returns null when it isn't a usable amount.
-function parsePrice(raw) {
-  let s = String(raw ?? '').replace(/[R\s]/gi, '')
-  if (s.includes(',') && s.includes('.')) s = s.replace(/,/g, '')
-  else if (/,\d{1,2}$/.test(s)) s = s.replace(',', '.')
-  else s = s.replace(/,/g, '')
-  if (!/^\d+(\.\d+)?$/.test(s)) return null
-  return Math.round(Number(s) * 100) / 100
-}
 
 // Fully blank rows are dropped (the fitter tapped "Add" and changed their
 // mind); anything else is trimmed and its price stored as a number so the
@@ -569,6 +558,12 @@ export default function FitterView() {
                 Clear form
               </button>
             )}
+            <Link
+              to="/components/new"
+              className="rounded-lg border border-orange px-3 py-1.5 text-sm font-semibold text-orange transition-colors hover:bg-orange/10"
+            >
+              + New component
+            </Link>
             <Link
               to="/clients"
               className="text-sm text-muted underline decoration-border underline-offset-4 hover:text-off-white"

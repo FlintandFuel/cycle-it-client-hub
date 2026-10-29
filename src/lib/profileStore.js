@@ -43,6 +43,31 @@ export async function createProfile(data) {
   return profile
 }
 
+// A component bought outside a fit session. Stored as its own `profiles`
+// doc (kind: 'components', fitDate = purchase date) so the Components page,
+// client history and the monthly invoice all pick it up by date with no
+// extra plumbing. profileEmailSent starts true so onProfileCreated skips
+// it — there's no fit profile to email the client.
+export async function createComponentPurchase({ client, date, components }) {
+  const ref = doc(collection(db, COLLECTION))
+  const purchase = {
+    id: ref.id,
+    kind: 'components',
+    client,
+    fitDate: date,
+    components,
+    createdAt: serverTimestamp(),
+    emailStatus: { profileEmailSent: true, profileEmailSentAt: null },
+  }
+  // Not awaited, for the same offline reason as createProfile above.
+  setDoc(ref, purchase).catch((err) => console.error(`Failed to sync component purchase ${ref.id}`, err))
+  return purchase
+}
+
+export function isComponentPurchase(profile) {
+  return profile?.kind === 'components'
+}
+
 // Requires an authenticated caller — see firestore.rules (`allow list`).
 export async function listProfiles() {
   const snap = await getDocs(query(collection(db, COLLECTION), orderBy('createdAt', 'desc')))

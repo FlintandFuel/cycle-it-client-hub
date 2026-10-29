@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { listProfiles } from '../lib/profileStore'
+import { isComponentPurchase, listProfiles } from '../lib/profileStore'
 import { groupProfilesByClient } from '../lib/groupClients'
 import logo from '../assets/cycle-it-logo-white.png'
 
@@ -153,6 +153,12 @@ export default function ClientsDashboard() {
             >
               + New fit
             </Link>
+            <Link
+              to="/components/new"
+              className="shrink-0 rounded-lg border border-orange px-4 py-2.5 text-sm font-semibold text-orange transition-colors hover:bg-orange/10"
+            >
+              + New component
+            </Link>
           </div>
         </div>
       </header>
@@ -218,17 +224,29 @@ export default function ClientsDashboard() {
                     <p className="text-sm text-muted">{formatDate(p.fitDate)}</p>
                     <div className="flex flex-wrap gap-1.5">
                       {p.newBikeFit === 'Yes' && <Badge tone="on">New bike fit</Badge>}
-                      {p.emailStatus?.profileEmailSent && <Badge tone="on">Email sent</Badge>}
+                      {isComponentPurchase(p) && <Badge>Components only</Badge>}
+                      {!isComponentPurchase(p) && p.emailStatus?.profileEmailSent && <Badge tone="on">Email sent</Badge>}
                       {p.review?.optedOut && <Badge>Review opted out</Badge>}
                     </div>
-                    <Link
-                      to={`/p/${p.id}`}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="text-sm font-medium text-orange hover:text-orange-light"
-                    >
-                      Latest profile →
-                    </Link>
+                    <div className="flex flex-col gap-1">
+                      {!isComponentPurchase(p) && (
+                        <Link
+                          to={`/p/${p.id}`}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="text-sm font-medium text-orange hover:text-orange-light"
+                        >
+                          Latest profile →
+                        </Link>
+                      )}
+                      <Link
+                        to="/components/new"
+                        state={{ prefillClient: { name: p.client?.name || '', email: p.client?.email || '', phone: p.client?.phone || '' } }}
+                        className="text-xs text-muted underline decoration-border underline-offset-4 hover:text-off-white"
+                      >
+                        + Component
+                      </Link>
+                    </div>
                   </div>
                 )
               })}

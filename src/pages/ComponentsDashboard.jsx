@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
-import { listProfiles, updateProfile } from '../lib/profileStore'
+import { Link } from 'react-router-dom'
+import { deleteProfile, isComponentPurchase, listProfiles, updateProfile } from '../lib/profileStore'
 import { formatRand } from '../lib/formatRand'
 import { cycleOf } from '../lib/billingCycle'
 
@@ -89,6 +90,13 @@ export default function ComponentsDashboard() {
       .filter(Boolean)
     setBusy(true)
     try {
+      // A component-only purchase with nothing left in it has no reason to
+      // exist — drop the whole doc so it doesn't linger in client history.
+      if (isComponentPurchase(profile) && next.length === 0) {
+        await deleteProfile(row.profileId)
+        setProfiles((prev) => prev.filter((p) => p.id !== row.profileId))
+        return
+      }
       await updateProfile(row.profileId, { components: next })
       setProfiles((prev) => prev.map((p) => (p.id === row.profileId ? { ...p, components: next } : p)))
       setEditing(null)
@@ -116,9 +124,17 @@ export default function ComponentsDashboard() {
   return (
     <div className="min-h-screen bg-ink pb-16">
       <header className="border-b border-border">
-        <div className="mx-auto max-w-3xl px-4 py-8 sm:px-6">
-          <h1 className="text-2xl font-bold text-off-white sm:text-3xl">Components</h1>
-          <p className="mt-1 text-sm text-muted">Parts fitted, at retail price — by billing month (26th to 25th)</p>
+        <div className="mx-auto flex max-w-3xl flex-wrap items-end justify-between gap-4 px-4 py-8 sm:px-6">
+          <div>
+            <h1 className="text-2xl font-bold text-off-white sm:text-3xl">Components</h1>
+            <p className="mt-1 text-sm text-muted">Parts fitted, at retail price — by billing month (26th to 25th)</p>
+          </div>
+          <Link
+            to="/components/new"
+            className="shrink-0 rounded-lg bg-orange px-4 py-2.5 text-sm font-semibold text-ink transition-colors hover:bg-orange-light"
+          >
+            + New component
+          </Link>
         </div>
       </header>
 
@@ -127,7 +143,7 @@ export default function ComponentsDashboard() {
         {profiles === undefined && !error && <p className="text-muted">Loading…</p>}
 
         {profiles && rows.length === 0 && (
-          <p className="text-muted">No components logged yet — add them under &quot;Components fitted&quot; on a fit.</p>
+          <p className="text-muted">No components logged yet — add one with &quot;+ New component&quot;, or under &quot;Components fitted&quot; on a fit.</p>
         )}
 
         {rows.length > 0 && (

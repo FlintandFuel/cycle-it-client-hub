@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
-import { listProfiles, deleteProfile } from '../lib/profileStore'
+import { listProfiles, deleteProfile, isComponentPurchase } from '../lib/profileStore'
 import { groupProfilesByClient, findClientGroup } from '../lib/groupClients'
 import { formatRand } from '../lib/formatRand'
 import logo from '../assets/cycle-it-logo-white.png'
@@ -50,7 +50,8 @@ export default function ClientHistoryView() {
   // otherwise the group lookup above would come up empty next render even
   // though the client may still have other fits on record.
   async function handleDelete(p) {
-    if (!window.confirm(`Delete this fit from ${formatDate(p.fitDate)}? This can't be undone.`)) return
+    const what = isComponentPurchase(p) ? 'component purchase' : 'fit'
+    if (!window.confirm(`Delete this ${what} from ${formatDate(p.fitDate)}? This can't be undone.`)) return
     setDeletingId(p.id)
     try {
       await deleteProfile(p.id)
@@ -100,6 +101,19 @@ export default function ClientHistoryView() {
               >
                 + New fit
               </Link>
+              <Link
+                to="/components/new"
+                state={{
+                  prefillClient: {
+                    name: group.latestProfile.client?.name || '',
+                    email: group.latestProfile.client?.email || '',
+                    phone: group.latestProfile.client?.phone || '',
+                  },
+                }}
+                className="shrink-0 rounded-lg border border-orange px-4 py-2.5 text-sm font-semibold text-orange transition-colors hover:bg-orange/10"
+              >
+                + New component
+              </Link>
             </div>
           )}
         </div>
@@ -125,7 +139,7 @@ export default function ClientHistoryView() {
               >
                 <p className="text-sm font-medium text-off-white">{formatDate(p.fitDate)}</p>
                 <p className="text-sm text-off-white/90">
-                  {p.bike?.make} {p.bike?.model}
+                  {isComponentPurchase(p) ? 'Component purchase' : `${p.bike?.make || ''} ${p.bike?.model || ''}`}
                 </p>
                 <div className="flex flex-wrap gap-1.5">
                   {p.newBikeFit === 'Yes' && <Badge tone="on">New bike fit</Badge>}
@@ -134,19 +148,23 @@ export default function ClientHistoryView() {
                       {p.components.length} component{p.components.length === 1 ? '' : 's'}
                     </Badge>
                   )}
-                  {p.emailStatus?.profileEmailSent && <Badge tone="on">Email sent</Badge>}
+                  {!isComponentPurchase(p) && p.emailStatus?.profileEmailSent && <Badge tone="on">Email sent</Badge>}
                   {p.review?.optedOut && <Badge>Review opted out</Badge>}
                 </div>
+                {isComponentPurchase(p) ? (
+                  <span className="hidden sm:block" />
+                ) : (
+                  <Link
+                    to={`/p/${p.id}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-sm font-medium text-orange hover:text-orange-light"
+                  >
+                    View profile →
+                  </Link>
+                )}
                 <Link
-                  to={`/p/${p.id}`}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="text-sm font-medium text-orange hover:text-orange-light"
-                >
-                  View profile →
-                </Link>
-                <Link
-                  to={`/edit/${p.id}`}
+                  to={isComponentPurchase(p) ? '/components' : `/edit/${p.id}`}
                   className="text-sm text-muted underline decoration-border underline-offset-4 hover:text-off-white"
                 >
                   Edit

@@ -6,6 +6,7 @@ const LINKS = [
   { to: '/invoices', label: 'Invoices' },
   { to: '/components', label: 'Components' },
   { to: '/new', label: 'New fit' },
+  { to: '/components/new', label: 'New component' },
 ]
 
 // Always-on top bar for the fitter-only screens. `children` is an optional
@@ -19,6 +20,7 @@ export default function FitterNav({ children }) {
             <NavLink
               key={l.to}
               to={l.to}
+              end
               className={({ isActive }) =>
                 `shrink-0 border-b-2 px-3 py-3 text-sm font-medium transition-colors ${
                   isActive

@@ -13,6 +13,16 @@ function normalizePhone(phone) {
   return (phone || '').replace(/\D/g, '')
 }
 
+// latestProfile drives the dashboard's bike / last-fit columns and profile
+// link, so a real fit always wins over a later component-only purchase.
+function isNewerLatest(profile, current) {
+  if (!current) return true
+  const isFit = profile.kind !== 'components'
+  const currentIsFit = current.kind !== 'components'
+  if (isFit !== currentIsFit) return isFit
+  return (profile.fitDate || '') > (current.fitDate || '')
+}
+
 export function groupProfilesByClient(profiles) {
   const groups = []
 
@@ -25,9 +35,7 @@ export function groupProfilesByClient(profiles) {
       existing.profiles.push(profile)
       if (email && !existing.email) existing.email = email
       if (phone && !existing.phone) existing.phone = phone
-      if (!existing.latestProfile || profile.fitDate > existing.latestProfile.fitDate) {
-        existing.latestProfile = profile
-      }
+      if (isNewerLatest(profile, existing.latestProfile)) existing.latestProfile = profile
     } else {
       groups.push({ email, phone, profiles: [profile], latestProfile: profile })
     }
