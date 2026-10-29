@@ -82,7 +82,7 @@ export default function AuthGate({ children }) {
   return (
     <div>
       <FitterNav>
-        <span className="hidden text-xs text-muted lg:inline">{user.email}</span>
+        <span className="hidden text-xs text-muted xl:inline">{user.email}</span>
         <button
           onClick={() => signOut(auth)}
           className="text-xs font-medium text-muted underline decoration-border underline-offset-4 hover:text-off-white"
