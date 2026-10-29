@@ -12,21 +12,21 @@ const LINKS = [
 
 // Always-on top bar for the fitter-only screens. `children` is an optional
 // right-hand slot (AuthGate puts the signed-in email + sign out there).
-// Below `sm` the links collapse into a hamburger menu — six tabs don't fit
-// across a phone without sideways scrolling.
+// Below `md` the links collapse into a hamburger menu — six tabs don't fit
+// across a phone or small tablet without sideways scrolling.
 export default function FitterNav({ children }) {
   const [open, setOpen] = useState(false)
 
   return (
     <nav className="border-b border-border bg-ink">
-      <div className="mx-auto flex max-w-3xl items-center justify-between gap-4 px-4 sm:px-6">
+      <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 sm:px-6">
         <button
           type="button"
           onClick={() => setOpen((o) => !o)}
           aria-expanded={open}
           aria-controls="fitter-nav-menu"
           aria-label={open ? 'Close menu' : 'Open menu'}
-          className="-ml-2 flex items-center gap-2 px-2 py-3 text-sm font-medium text-off-white sm:hidden"
+          className="-ml-2 flex items-center gap-2 px-2 py-3 text-sm font-medium text-off-white md:hidden"
         >
           <svg viewBox="0 0 24 24" className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth="2">
             {open ? (
@@ -37,7 +37,7 @@ export default function FitterNav({ children }) {
           </svg>
           Menu
         </button>
-        <div className="-mx-2 hidden overflow-x-auto sm:flex">
+        <div className="-mx-2 hidden overflow-x-auto md:flex">
           {LINKS.map((l) => (
             <NavLink
               key={l.to}
@@ -58,7 +58,7 @@ export default function FitterNav({ children }) {
         {children && <div className="flex shrink-0 items-center gap-3">{children}</div>}
       </div>
       {open && (
-        <div id="fitter-nav-menu" className="border-t border-border sm:hidden">
+        <div id="fitter-nav-menu" className="border-t border-border md:hidden">
           {LINKS.map((l) => (
             <NavLink
               key={l.to}
